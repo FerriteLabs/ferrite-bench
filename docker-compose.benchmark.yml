@@ -1,0 +1,151 @@
+# Competitive Benchmark Suite — Ferrite vs Redis 7 vs Dragonfly vs KeyDB
+# Uses memtier_benchmark for consistent, reproducible load generation.
+#
+# Usage:
+#   docker compose -f docker-compose.benchmark.yml up -d
+#   ./run_memtier_comparison.sh
+#
+# Standalone benchmark mode (Ferrite + Redis only):
+#   docker compose -f docker-compose.benchmark.yml --profile standalone up -d
+#   ./run_full_comparison.sh
+#
+# Each server listens on a unique port to allow parallel startup:
+#   Ferrite    → 6380
+#   Redis 7    → 6381
+#   Dragonfly  → 6382
+#   KeyDB      → 6383
+
+services:
+  # ── Ferrite ───────────────────────────────────────────────────────────────
+  ferrite:
+    image: ferritelabs/ferrite:latest
+    ports:
+      - "6380:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "PING"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - benchnet
+
+  # ── Redis 7 ───────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6381:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - benchnet
+
+  # ── Dragonfly ─────────────────────────────────────────────────────────────
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    command: ["--logtostderr", "--proactor_threads=4"]
+    ports:
+      - "6382:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2G
+    ulimits:
+      memlock: -1
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "PING"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - benchnet
+
+  # ── KeyDB ─────────────────────────────────────────────────────────────────
+  keydb:
+    image: eqalpha/keydb
+    command: ["keydb-server", "--save", "", "--appendonly", "no", "--server-threads", "4"]
+    ports:
+      - "6383:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - benchnet
+
+  # ── Qdrant (vector search) ────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - benchnet
+
+  # ── memtier_benchmark runner ──────────────────────────────────────────────
+  memtier:
+    image: redislabs/memtier_benchmark:latest
+    entrypoint: ["sleep", "infinity"]
+    depends_on:
+      ferrite:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      dragonfly:
+        condition: service_healthy
+      keydb:
+        condition: service_healthy
+    networks:
+      - benchnet
+
+  # ── Standalone benchmark runner (Ferrite + Redis only) ────────────────────
+  # Activate with: docker compose --profile standalone up -d
+  bench-runner:
+    image: redis:7-alpine
+    profiles: ["standalone"]
+    entrypoint: ["sleep", "infinity"]
+    volumes:
+      - ./benchmarks:/benchmarks:ro
+      - ./comparison:/comparison:ro
+      - ./results:/results
+    depends_on:
+      ferrite:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - benchnet
+
+networks:
+  benchnet:
+    driver: bridge
