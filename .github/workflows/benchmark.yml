@@ -1,0 +1,204 @@
+name: Benchmark Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly on Mondays at 04:00 UTC
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      ferrite_ref:
+        description: "Ferrite repo ref to benchmark (branch, tag, or SHA)"
+        required: false
+        default: "main"
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+env:
+  FERRITE_PORT: 6380
+  REDIS_PORT: 6379
+  FERRITE_HOST: 127.0.0.1
+  REDIS_HOST: 127.0.0.1
+  BENCH_CLIENTS: 50
+  BENCH_REQUESTS: 100000
+  BENCH_DATA_SIZE: 256
+  BENCH_PIPELINE: 1
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ── Checkout repos ──────────────────────────────────────────────────────
+      - name: Checkout ferrite-bench
+        uses: actions/checkout@v4
+
+      - name: Checkout ferrite
+        uses: actions/checkout@v4
+        with:
+          repository: ferritelabs/ferrite
+          ref: ${{ github.event.inputs.ferrite_ref || 'main' }}
+          path: ferrite
+
+      # ── Install tooling ─────────────────────────────────────────────────────
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ferrite/target
+          key: bench-cargo-${{ hashFiles('ferrite/Cargo.lock') }}
+          restore-keys: |
+            bench-cargo-
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq redis-tools redis-server jq python3
+
+      # ── Build Ferrite ───────────────────────────────────────────────────────
+      - name: Build Ferrite (release)
+        working-directory: ferrite
+        run: cargo build --release
+        timeout-minutes: 30
+
+      # ── Start servers ───────────────────────────────────────────────────────
+      - name: Start Ferrite server
+        run: |
+          ./ferrite/target/release/ferrite --port ${{ env.FERRITE_PORT }} &
+          FERRITE_PID=$!
+          echo "FERRITE_PID=${FERRITE_PID}" >> "$GITHUB_ENV"
+          echo "Started Ferrite with PID ${FERRITE_PID}"
+
+      - name: Start Redis server
+        run: |
+          redis-server --port ${{ env.REDIS_PORT }} --save "" --appendonly no --daemonize no &
+          REDIS_PID=$!
+          echo "REDIS_PID=${REDIS_PID}" >> "$GITHUB_ENV"
+          echo "Started Redis with PID ${REDIS_PID}"
+
+      - name: Wait for servers
+        run: |
+          for server in "Ferrite:${{ env.FERRITE_HOST }}:${{ env.FERRITE_PORT }}" "Redis:${{ env.REDIS_HOST }}:${{ env.REDIS_PORT }}"; do
+            IFS=':' read -r name host port <<< "$server"
+            echo "Waiting for ${name} on ${host}:${port}..."
+            retries=30
+            count=0
+            while ! redis-cli -h "$host" -p "$port" PING 2>/dev/null | grep -q PONG; do
+              count=$((count + 1))
+              if [ "$count" -ge "$retries" ]; then
+                echo "::error::${name} failed to start within ${retries} seconds"
+                exit 1
+              fi
+              sleep 1
+            done
+            echo "${name} is ready."
+          done
+        timeout-minutes: 2
+
+      # ── Run benchmarks ──────────────────────────────────────────────────────
+      - name: Run Ferrite benchmarks
+        run: |
+          BENCH_HOST=${{ env.FERRITE_HOST }} \
+          BENCH_PORT=${{ env.FERRITE_PORT }} \
+          BENCH_CLIENTS=${{ env.BENCH_CLIENTS }} \
+          BENCH_REQUESTS=${{ env.BENCH_REQUESTS }} \
+          BENCH_DATA_SIZE=${{ env.BENCH_DATA_SIZE }} \
+          BENCH_PIPELINE=${{ env.BENCH_PIPELINE }} \
+            ./benchmarks/ferrite_bench.sh
+        timeout-minutes: 15
+
+      - name: Run Redis benchmarks
+        run: |
+          BENCH_HOST=${{ env.REDIS_HOST }} \
+          BENCH_PORT=${{ env.REDIS_PORT }} \
+          BENCH_CLIENTS=${{ env.BENCH_CLIENTS }} \
+          BENCH_REQUESTS=${{ env.BENCH_REQUESTS }} \
+          BENCH_DATA_SIZE=${{ env.BENCH_DATA_SIZE }} \
+          BENCH_PIPELINE=${{ env.BENCH_PIPELINE }} \
+            ./benchmarks/redis_bench.sh
+        timeout-minutes: 15
+
+      # ── Generate comparison ─────────────────────────────────────────────────
+      - name: Generate comparison report
+        run: |
+          python3 comparison/compare.py \
+            results/ferrite_latest.json \
+            results/redis_latest.json \
+            -o results/comparison.md \
+            --json results/comparison.json
+
+      - name: Write job summary
+        run: |
+          cat results/comparison.md >> "$GITHUB_STEP_SUMMARY"
+
+      # ── PR comment (if applicable) ─────────────────────────────────────────
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('results/comparison.md', 'utf8');
+            const header = '<!-- ferrite-bench-results -->';
+            const fullBody = `${header}\n${body}`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(header));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: fullBody,
+              });
+            }
+
+      # ── Upload artifacts ────────────────────────────────────────────────────
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: |
+            results/*.json
+            results/*.md
+          retention-days: 90
+
+      # ── Cleanup ─────────────────────────────────────────────────────────────
+      - name: Stop servers
+        if: always()
+        run: |
+          for pid_var in FERRITE_PID REDIS_PID; do
+            pid="${!pid_var:-}"
+            if [[ -n "$pid" ]]; then
+              echo "Stopping ${pid_var} (PID: ${pid})..."
+              kill "$pid" 2>/dev/null || true
+              wait "$pid" 2>/dev/null || true
+            fi
+          done

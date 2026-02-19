@@ -1,0 +1,374 @@
+name: Nightly Benchmark
+
+on:
+  schedule:
+    # Run every night at 02:00 UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      ferrite_ref:
+        description: "Ferrite repo ref to benchmark (branch, tag, or SHA)"
+        required: false
+        default: "main"
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  FERRITE_PORT: 6380
+  FERRITE_HOST: 127.0.0.1
+  BENCH_REQUESTS: 100000
+  BENCH_DATA_SIZE: 256
+  # Commands to benchmark (comma-separated for redis-benchmark -t)
+  BENCH_COMMANDS: "set,get,incr,lpush,rpush,sadd,hset,ping"
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ── Checkout repos ──────────────────────────────────────────────────────
+      - name: Checkout ferrite-bench
+        uses: actions/checkout@v4
+
+      - name: Checkout ferrite
+        uses: actions/checkout@v4
+        with:
+          repository: ferritelabs/ferrite
+          ref: ${{ github.event.inputs.ferrite_ref || 'main' }}
+          path: ferrite
+
+      # ── Install tooling ─────────────────────────────────────────────────────
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ferrite/target
+          key: bench-cargo-${{ hashFiles('ferrite/Cargo.lock') }}
+          restore-keys: |
+            bench-cargo-
+
+      - name: Install redis-tools (redis-benchmark)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq redis-tools jq bc
+
+      # ── Build Ferrite ───────────────────────────────────────────────────────
+      - name: Build Ferrite (release)
+        working-directory: ferrite
+        run: cargo build --release
+        timeout-minutes: 30
+
+      # ── Start Ferrite server ────────────────────────────────────────────────
+      - name: Start Ferrite server
+        run: |
+          ./ferrite/target/release/ferrite --port ${{ env.FERRITE_PORT }} &
+          FERRITE_PID=$!
+          echo "FERRITE_PID=${FERRITE_PID}" >> "$GITHUB_ENV"
+          echo "Started Ferrite server with PID ${FERRITE_PID}"
+
+      - name: Wait for Ferrite health check
+        run: |
+          echo "Waiting for Ferrite to be ready on port ${{ env.FERRITE_PORT }}..."
+          retries=30
+          count=0
+          while ! redis-cli -h ${{ env.FERRITE_HOST }} -p ${{ env.FERRITE_PORT }} PING 2>/dev/null | grep -q PONG; do
+            count=$((count + 1))
+            if [ "$count" -ge "$retries" ]; then
+              echo "::error::Ferrite failed to start within ${retries} seconds"
+              exit 1
+            fi
+            echo "  Attempt ${count}/${retries}..."
+            sleep 1
+          done
+          echo "Ferrite is ready."
+        timeout-minutes: 2
+
+      # ── Run benchmarks ──────────────────────────────────────────────────────
+      - name: Run benchmarks
+        id: bench
+        run: |
+          set -euo pipefail
+
+          RESULTS_DIR="${GITHUB_WORKSPACE}/results"
+          mkdir -p "${RESULTS_DIR}"
+
+          TIMESTAMP="$(date -u +%Y%m%d_%H%M%S)"
+          echo "TIMESTAMP=${TIMESTAMP}" >> "$GITHUB_ENV"
+          echo "RESULTS_DIR=${RESULTS_DIR}" >> "$GITHUB_ENV"
+
+          CLIENTS_LIST="1 50 100"
+          PIPELINES_LIST="1 16 64"
+
+          # CSV header
+          COMBINED_CSV="${RESULTS_DIR}/benchmark_${TIMESTAMP}.csv"
+          echo "timestamp,command,clients,pipeline,requests_per_sec,avg_latency_ms,min_latency_ms,p50_latency_ms,p95_latency_ms,p99_latency_ms,max_latency_ms" > "${COMBINED_CSV}"
+
+          # JSON array for all results
+          JSON_FILE="${RESULTS_DIR}/benchmark_${TIMESTAMP}.json"
+          echo '[]' > "${JSON_FILE}"
+
+          for clients in $CLIENTS_LIST; do
+            for pipeline in $PIPELINES_LIST; do
+              echo ""
+              echo "════════════════════════════════════════════════════════════"
+              echo "  Clients: ${clients}, Pipeline: ${pipeline}"
+              echo "════════════════════════════════════════════════════════════"
+
+              RAW_CSV="${RESULTS_DIR}/raw_c${clients}_p${pipeline}.csv"
+
+              redis-benchmark \
+                -h ${{ env.FERRITE_HOST }} \
+                -p ${{ env.FERRITE_PORT }} \
+                -c "${clients}" \
+                -n ${{ env.BENCH_REQUESTS }} \
+                -d ${{ env.BENCH_DATA_SIZE }} \
+                -P "${pipeline}" \
+                -t ${{ env.BENCH_COMMANDS }} \
+                --csv \
+                > "${RAW_CSV}" 2>&1 || {
+                  echo "::warning::redis-benchmark failed for clients=${clients} pipeline=${pipeline}"
+                  continue
+                }
+
+              echo "  Raw output:"
+              cat "${RAW_CSV}"
+
+              # Parse CSV output (skip header line)
+              # redis-benchmark --csv format: "test","rps","avg_latency","min_latency","p50","p95","p99","max_latency"
+              tail -n +2 "${RAW_CSV}" | while IFS=',' read -r test rps avg_lat min_lat p50 p95 p99 max_lat; do
+                # Strip quotes
+                test="${test//\"/}"
+                rps="${rps//\"/}"
+                avg_lat="${avg_lat//\"/}"
+                min_lat="${min_lat//\"/}"
+                p50="${p50//\"/}"
+                p95="${p95//\"/}"
+                p99="${p99//\"/}"
+                max_lat="${max_lat//\"/}"
+
+                # Skip empty lines
+                [[ -z "$test" ]] && continue
+
+                echo "${TIMESTAMP},${test},${clients},${pipeline},${rps},${avg_lat},${min_lat},${p50},${p95},${p99},${max_lat}" >> "${COMBINED_CSV}"
+
+                # Append to JSON
+                TMP_JSON=$(mktemp)
+                jq --arg ts "${TIMESTAMP}" \
+                   --arg cmd "${test}" \
+                   --argjson clients "${clients}" \
+                   --argjson pipeline "${pipeline}" \
+                   --arg rps "${rps}" \
+                   --arg avg "${avg_lat}" \
+                   --arg min "${min_lat}" \
+                   --arg p50 "${p50}" \
+                   --arg p95 "${p95}" \
+                   --arg p99 "${p99}" \
+                   --arg max "${max_lat}" \
+                   '. += [{
+                     timestamp: $ts,
+                     command: $cmd,
+                     clients: $clients,
+                     pipeline: $pipeline,
+                     requests_per_sec: ($rps | tonumber),
+                     avg_latency_ms: ($avg | tonumber),
+                     min_latency_ms: ($min | tonumber),
+                     p50_latency_ms: ($p50 | tonumber),
+                     p95_latency_ms: ($p95 | tonumber),
+                     p99_latency_ms: ($p99 | tonumber),
+                     max_latency_ms: ($max | tonumber)
+                   }]' "${JSON_FILE}" > "${TMP_JSON}" && mv "${TMP_JSON}" "${JSON_FILE}"
+              done
+
+              # Flush between runs to avoid key accumulation
+              redis-cli -h ${{ env.FERRITE_HOST }} -p ${{ env.FERRITE_PORT }} FLUSHALL >/dev/null 2>&1 || true
+            done
+          done
+
+          echo "COMBINED_CSV=${COMBINED_CSV}" >> "$GITHUB_ENV"
+          echo "JSON_FILE=${JSON_FILE}" >> "$GITHUB_ENV"
+          echo ""
+          echo "Benchmarks complete. Results: ${COMBINED_CSV}"
+        timeout-minutes: 30
+
+      # ── Generate summary ────────────────────────────────────────────────────
+      - name: Generate markdown summary
+        run: |
+          set -euo pipefail
+
+          CSV="${COMBINED_CSV}"
+          FERRITE_REF="${{ github.event.inputs.ferrite_ref || 'main' }}"
+
+          {
+            echo "# Nightly Benchmark Results"
+            echo ""
+            echo "**Date:** $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "**Ferrite ref:** \`${FERRITE_REF}\`"
+            echo "**Runner:** \`$(uname -m)\` / $(nproc) cores / $(free -h | awk '/^Mem:/{print $2}') RAM"
+            echo "**Requests per test:** ${{ env.BENCH_REQUESTS }}"
+            echo "**Data size:** ${{ env.BENCH_DATA_SIZE }} bytes"
+            echo ""
+
+            for pipeline in 1 16 64; do
+              echo "## Pipeline = ${pipeline}"
+              echo ""
+              echo "| Command | Clients | Req/sec | Avg Latency (ms) | p50 (ms) | p95 (ms) | p99 (ms) |"
+              echo "|---------|--------:|--------:|-----------------:|---------:|---------:|---------:|"
+
+              # Sort by command then clients for clean output
+              grep -v "^timestamp," "${CSV}" | awk -F',' -v pl="${pipeline}" '$4 == pl' | sort -t',' -k2,2 -k3,3n | while IFS=',' read -r ts cmd clients pl rps avg min p50 p95 p99 max; do
+                printf "| %-8s | %7s | %7s | %16s | %8s | %8s | %8s |\n" \
+                  "${cmd}" "${clients}" "${rps}" "${avg}" "${p50}" "${p95}" "${p99}"
+              done
+
+              echo ""
+            done
+
+            echo "---"
+            echo ""
+            echo "### Peak Throughput by Command"
+            echo ""
+            echo "| Command | Best Req/sec | Clients | Pipeline |"
+            echo "|---------|------------:|--------:|---------:|"
+
+            # For each unique command, find the configuration with highest throughput
+            grep -v "^timestamp," "${CSV}" | cut -d',' -f2 | sort -u | while read -r cmd; do
+              best_line=$(grep -v "^timestamp," "${CSV}" | grep ",${cmd}," | sort -t',' -k5 -rn | head -1)
+              best_rps=$(echo "${best_line}" | cut -d',' -f5)
+              best_clients=$(echo "${best_line}" | cut -d',' -f3)
+              best_pipeline=$(echo "${best_line}" | cut -d',' -f4)
+              printf "| %-8s | %11s | %7s | %8s |\n" "${cmd}" "${best_rps}" "${best_clients}" "${best_pipeline}"
+            done
+
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Summary written to GITHUB_STEP_SUMMARY."
+
+      # ── Regression detection ────────────────────────────────────────────────
+      - name: Download previous benchmark results
+        id: download_previous
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: nightly-bench-results
+          workflow: nightly-bench.yml
+          branch: main
+          search_artifacts: true
+          if_no_artifact_found: warn
+        continue-on-error: true
+
+      - name: Detect regressions
+        if: steps.download_previous.outcome == 'success'
+        run: |
+          set -euo pipefail
+
+          CURRENT_JSON="${JSON_FILE}"
+          # The downloaded artifact places files in the workspace root
+          PREVIOUS_JSON=$(ls -t ${GITHUB_WORKSPACE}/benchmark_*.json 2>/dev/null | head -1 || true)
+
+          if [[ -z "${PREVIOUS_JSON}" || ! -f "${PREVIOUS_JSON}" ]]; then
+            echo "No previous JSON results found for comparison. Skipping regression detection."
+            exit 0
+          fi
+
+          echo "Comparing current results against: ${PREVIOUS_JSON}"
+          echo ""
+
+          REGRESSION_FOUND=false
+          ERROR_FOUND=false
+
+          {
+            echo ""
+            echo "## Regression Analysis"
+            echo ""
+            echo "| Command | Clients | Pipeline | Previous Req/s | Current Req/s | Change |"
+            echo "|---------|--------:|---------:|---------------:|--------------:|-------:|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Compare each (command, clients, pipeline) tuple
+          jq -r '.[] | "\(.command),\(.clients),\(.pipeline),\(.requests_per_sec)"' "${CURRENT_JSON}" | while IFS=',' read -r cmd clients pipeline current_rps; do
+            # Find matching entry in previous results
+            prev_rps=$(jq -r --arg cmd "${cmd}" --argjson cl "${clients}" --argjson pl "${pipeline}" \
+              '[.[] | select(.command == $cmd and .clients == $cl and .pipeline == $pl)] | .[0].requests_per_sec // empty' \
+              "${PREVIOUS_JSON}" 2>/dev/null || true)
+
+            if [[ -z "${prev_rps}" || "${prev_rps}" == "null" ]]; then
+              continue
+            fi
+
+            # Calculate percentage change
+            if [[ "$(echo "${prev_rps} == 0" | bc -l)" == "1" ]]; then
+              continue
+            fi
+
+            pct_change=$(echo "scale=2; ((${current_rps} - ${prev_rps}) / ${prev_rps}) * 100" | bc -l)
+            pct_abs=$(echo "${pct_change}" | tr -d '-')
+
+            # Determine if regression
+            is_regression=$(echo "${pct_change} < 0" | bc -l)
+
+            if [[ "${is_regression}" == "1" ]]; then
+              is_warning=$(echo "${pct_abs} > 10" | bc -l)
+              is_error=$(echo "${pct_abs} > 20" | bc -l)
+
+              indicator=""
+              if [[ "${is_error}" == "1" ]]; then
+                indicator=" :x:"
+                echo "::error::REGRESSION (>${20}%): ${cmd} c=${clients} p=${pipeline}: ${prev_rps} -> ${current_rps} req/s (${pct_change}%)"
+                ERROR_FOUND=true
+              elif [[ "${is_warning}" == "1" ]]; then
+                indicator=" :warning:"
+                echo "::warning::Regression (>${10}%): ${cmd} c=${clients} p=${pipeline}: ${prev_rps} -> ${current_rps} req/s (${pct_change}%)"
+                REGRESSION_FOUND=true
+              fi
+
+              printf "| %-8s | %7s | %8s | %14s | %13s | %5s%%%s |\n" \
+                "${cmd}" "${clients}" "${pipeline}" "${prev_rps}" "${current_rps}" "${pct_change}" "${indicator}" >> "$GITHUB_STEP_SUMMARY"
+            else
+              printf "| %-8s | %7s | %8s | %14s | %13s | +%5s%% |\n" \
+                "${cmd}" "${clients}" "${pipeline}" "${prev_rps}" "${current_rps}" "${pct_change}" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # We don't fail the workflow for regressions — they are surfaced as annotations
+          if [[ "${ERROR_FOUND}" == "true" ]]; then
+            echo "::error::One or more benchmarks regressed by more than 20%. See job summary for details."
+          elif [[ "${REGRESSION_FOUND}" == "true" ]]; then
+            echo "::warning::One or more benchmarks regressed by more than 10%. See job summary for details."
+          else
+            echo "No significant regressions detected."
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> **No significant regressions detected.**" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # ── Upload artifacts ────────────────────────────────────────────────────
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-bench-results
+          path: |
+            ${{ env.RESULTS_DIR }}/benchmark_*.csv
+            ${{ env.RESULTS_DIR }}/benchmark_*.json
+          retention-days: 90
+
+      # ── Cleanup ─────────────────────────────────────────────────────────────
+      - name: Stop Ferrite server
+        if: always()
+        run: |
+          if [[ -n "${FERRITE_PID:-}" ]]; then
+            echo "Stopping Ferrite (PID: ${FERRITE_PID})..."
+            kill "${FERRITE_PID}" 2>/dev/null || true
+            wait "${FERRITE_PID}" 2>/dev/null || true
+            echo "Ferrite stopped."
+          fi
