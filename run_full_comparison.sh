@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# Full Benchmark Comparison — Ferrite vs Redis
+# Full Benchmark Comparison — Ferrite vs Redis 7
 #
 # Orchestrates the complete benchmark workflow:
 #   1. Runs benchmarks against Ferrite
@@ -143,7 +143,7 @@ start_servers() {
 main() {
     echo ""
     echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║  Full Benchmark Comparison — Ferrite vs Redis               ║"
+    echo "║  Full Benchmark Comparison — Ferrite vs Redis 7             ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo ""
 
