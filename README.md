@@ -158,6 +158,17 @@ docker run -p 6379:6379 redis/redis-stack-server:latest
 
 Results are saved to `benchmarks/results/` with a markdown comparison report.
 
+## Environment Requirements
+
+| Requirement | Minimum Version | Notes |
+|---|---|---|
+| Docker | 24.0+ | Docker Engine with Compose v2 |
+| Python | 3.8+ | For JSON result parsing scripts |
+| Bash | 4.0+ | Required for associative arrays |
+| GNU coreutils | — | `date`, `awk`, `sort` used in scripts |
+
+Ensure Docker has at least **4 GB of RAM** allocated when running the full competitive benchmark suite (all 4 servers run concurrently).
+
 ## License
 
 Apache-2.0
