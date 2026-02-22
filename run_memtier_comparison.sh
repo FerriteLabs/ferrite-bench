@@ -249,6 +249,28 @@ generate_summary() {
     ok "Markdown summary → ${SUMMARY_FILE}"
 }
 
+# Validate latency thresholds for Ferrite
+check_latency_thresholds() {
+    local csv_file="$1"
+    local max_p99="${MAX_P99_LATENCY_MS:-10.0}"
+
+    info "Checking latency thresholds (max p99: ${max_p99}ms)..."
+    local failures=0
+
+    grep "^ferrite," "$csv_file" | while IFS=',' read -r srv sc rt pl ops avg p50 p99; do
+        if (( $(echo "$p99 > $max_p99" | bc -l) )); then
+            warn "THRESHOLD EXCEEDED: ${sc} p99=${p99}ms > ${max_p99}ms"
+            failures=$((failures + 1))
+        fi
+    done
+
+    if [[ $failures -gt 0 ]]; then
+        warn "${failures} scenario(s) exceeded latency threshold"
+    else
+        ok "All scenarios within latency thresholds"
+    fi
+}
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
