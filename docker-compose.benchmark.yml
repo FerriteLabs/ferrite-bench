@@ -93,6 +93,25 @@ services:
     networks:
       - benchnet
 
+  # ── Valkey ─────────────────────────────────────────────────────────────────
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6384:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "valkey-cli", "PING"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - benchnet
+
   # ── Qdrant (vector search) ────────────────────────────────────────────────
   qdrant:
     image: qdrant/qdrant:latest
@@ -124,6 +143,8 @@ services:
       dragonfly:
         condition: service_healthy
       keydb:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     networks:
       - benchnet
