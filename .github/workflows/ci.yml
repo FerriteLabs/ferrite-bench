@@ -12,15 +12,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check shell scripts
-        run: |
-          if command -v shellcheck &>/dev/null; then
-            shellcheck comparison/*.sh
-          else
-            echo "shellcheck not available, skipping"
-          fi
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: '.'
+          severity: warning
       - name: Verify scripts are executable
-        run: test -x comparison/run_comparison.sh
+        run: |
+          for f in $(find . -name '*.sh' -type f); do
+            test -x "$f" || (echo "Not executable: $f" && exit 1)
+          done
+
+  python-lint:
+    name: Python Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: check benchmarks/ comparison/
 
   gitleaks:
     name: Secret Scanning

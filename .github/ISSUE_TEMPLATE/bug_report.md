@@ -1,12 +1,19 @@
 ---
 name: Bug Report
-about: Report a bug or issue
+about: Report a bug with benchmarks
 title: "[Bug] "
 labels: bug
 ---
 
 ## Description
 A clear description of the bug.
+
+## Affected Component
+- [ ] Benchmark scripts
+- [ ] Report generator
+- [ ] Docker Compose setup
+- [ ] Result formatting
+- [ ] Other: ___
 
 ## Steps to Reproduce
 1. ...
@@ -16,8 +23,9 @@ A clear description of the bug.
 What you expected to happen.
 
 ## Actual Behavior
-What actually happened.
+What actually happened. Include error output if available.
 
 ## Environment
 - OS:
-- Version:
+- Docker version:
+- memtier_benchmark version:
