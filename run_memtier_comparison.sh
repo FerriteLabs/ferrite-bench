@@ -42,7 +42,7 @@ declare -A SERVER_HOSTS SERVER_PORTS
 if [[ "$FERRITE_ONLY" == true ]]; then
     SERVER_NAMES=(ferrite)
 else
-    SERVER_NAMES=(ferrite redis dragonfly keydb)
+    SERVER_NAMES=(ferrite redis dragonfly keydb valkey)
 fi
 
 SERVER_HOSTS=(
@@ -50,12 +50,14 @@ SERVER_HOSTS=(
     [redis]=redis
     [dragonfly]=dragonfly
     [keydb]=keydb
+    [valkey]=valkey
 )
 SERVER_PORTS=(
     [ferrite]=6379
     [redis]=6379
     [dragonfly]=6379
     [keydb]=6379
+    [valkey]=6379
 )
 
 # ── Scenario definitions ────────────────────────────────────────────────────
