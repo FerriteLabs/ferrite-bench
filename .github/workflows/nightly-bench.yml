@@ -256,7 +256,7 @@ jobs:
       # ── Regression detection ────────────────────────────────────────────────
       - name: Download previous benchmark results
         id: download_previous
-        uses: dawidd6/action-download-artifact@v6
+        uses: dawidd6/action-download-artifact@v15
         with:
           name: nightly-bench-results
           workflow: nightly-bench.yml
