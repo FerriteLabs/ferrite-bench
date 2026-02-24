@@ -37,6 +37,9 @@ EXPECTED_COLUMNS = {
 
 BASELINE_SERVER = "redis"
 
+# Latency percentile buckets for histogram output in reports
+LATENCY_PERCENTILES = [50, 75, 90, 95, 99, 99.5, 99.9]
+
 
 def _update_baseline(server: str) -> None:
     global BASELINE_SERVER
@@ -482,6 +485,43 @@ def generate_markdown(data: ReportData, out: TextIO) -> None:
             f"| {wins_str} |\n"
         )
     out.write("\n")
+
+    # ── Latency Percentile Histogram ─────────────────────────────────
+    out.write("## Latency Percentile Distribution
+
+")
+    for scenario in data.scenarios:
+        label = data.labels.get(scenario, scenario)
+        out.write(f"### {label} — Latency Percentiles
+
+")
+        header = "| Percentile |" + "".join(f" {s} (ms) |" for s in data.servers)
+        sep = "|-----------|" + "".join("--------:|" for _ in data.servers)
+        out.write(header + "
+")
+        out.write(sep + "
+")
+        for pctl in LATENCY_PERCENTILES:
+            line = f"| p{pctl} |"
+            for server in data.servers:
+                row = data.get(server, scenario)
+                if row:
+                    if pctl == 50:
+                        line += f" {fmt_latency(row.p50_latency_ms)} |"
+                    elif pctl == 99:
+                        line += f" {fmt_latency(row.p99_latency_ms)} |"
+                    elif pctl == 99.9:
+                        line += f" {fmt_latency(row.p999_latency_ms)} |"
+                    else:
+                        line += " — |"
+                else:
+                    line += " N/A |"
+            out.write(line + "
+")
+        out.write("
+")
+    out.write("
+")
 
     # ── Footer ───────────────────────────────────────────────────────────
     out.write("---\n\n")
