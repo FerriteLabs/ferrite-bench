@@ -1,4 +1,4 @@
-target-version = "py310"
+target-version = "py311"
 line-length = 120
 
 [lint]
@@ -11,6 +11,8 @@ select = [
     "UP",    # pyupgrade
     "B",     # flake8-bugbear
     "SIM",   # flake8-simplify
+    "C4",    # flake8-comprehensions
+    "RUF",   # ruff-specific rules
 ]
 ignore = [
     "E501",  # line too long (handled by line-length)
