@@ -17,7 +17,9 @@ set -euo pipefail
 
 MODE="${1:-full}"
 DURATION=60
-[[ "$MODE" == "--quick" ]] && DURATION=30
+WARMUP_DURATION=10
+STABILIZATION_WAIT=3
+[[ "$MODE" == "--quick" ]] && DURATION=30 && WARMUP_DURATION=5
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RESULTS_DIR="$SCRIPT_DIR/results/$(date +%Y%m%d_%H%M%S)"
@@ -78,6 +80,14 @@ else
                 mixed) RATIO="1:1" ;;
             esac
             
+            echo "  Warming up $server/$scenario (${WARMUP_DURATION}s)..."
+            docker run --rm --network host redislabs/memtier_benchmark:latest \
+                -s 127.0.0.1 -p "$PORT" \
+                --ratio="$RATIO" --key-pattern=R:R \
+                --data-size=128 --key-maximum=1000000 \
+                -c 10 -t 2 --test-time="$WARMUP_DURATION" \
+                2>/dev/null >/dev/null || true
+            sleep "$STABILIZATION_WAIT"
             echo "  Running $server/$scenario..."
             docker run --rm --network host redislabs/memtier_benchmark:latest \
                 -s 127.0.0.1 -p "$PORT" \
