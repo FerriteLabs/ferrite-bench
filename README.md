@@ -1,6 +1,8 @@
 # Ferrite Benchmarks
 
 [![Nightly Benchmark](https://github.com/ferritelabs/ferrite-bench/actions/workflows/nightly-bench.yml/badge.svg)](https://github.com/ferritelabs/ferrite-bench/actions/workflows/nightly-bench.yml)
+[![CI](https://github.com/ferritelabs/ferrite-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/ferritelabs/ferrite-bench/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 Performance comparison benchmarks for [Ferrite](https://github.com/ferritelabs/ferrite).
 
@@ -168,6 +170,10 @@ Results are saved to `benchmarks/results/` with a markdown comparison report.
 | GNU coreutils | — | `date`, `awk`, `sort` used in scripts |
 
 Ensure Docker has at least **4 GB of RAM** allocated when running the full competitive benchmark suite (all 4 servers run concurrently).
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
