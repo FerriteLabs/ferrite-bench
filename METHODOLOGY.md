@@ -92,11 +92,18 @@ eliminate cold-start effects and populate caches.
 | Metric | Source | Unit |
 |--------|--------|------|
 | Throughput (ops/sec) | memtier output | ops/sec |
+| Avg latency | memtier output | ms |
 | P50 latency | memtier output | ms |
+| P95 latency | memtier output | ms |
 | P99 latency | memtier output | ms |
 | P99.9 latency | memtier output | ms |
+| P99.99 latency | memtier output | ms |
 | Memory usage (RSS) | `ps -o rss=` | KB |
 | CPU usage | `top -bn1` | % |
+
+Latency percentiles are reported as the worst-case (maximum) across both
+SET and GET operations for each scenario. This ensures that tail latency
+regressions in either path are surfaced.
 
 ## Fairness Guarantees
 
