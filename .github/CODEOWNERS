@@ -1,1 +1,10 @@
+# Default owners for everything
 * @josedab
+
+# Benchmark scripts and methodology
+/benchmarks/ @josedab
+/comparison/ @josedab
+/METHODOLOGY.md @josedab
+
+# CI/CD and infrastructure
+/.github/ @josedab
