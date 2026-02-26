@@ -38,7 +38,8 @@ EXPECTED_COLUMNS = {
 BASELINE_SERVER = "redis"
 
 # Latency percentile buckets for histogram output in reports
-LATENCY_PERCENTILES = [50, 75, 90, 95, 99, 99.5, 99.9]
+# NOTE: 99.5 removed — memtier does not emit p99.5; replaced with 99.99
+LATENCY_PERCENTILES = [50, 75, 90, 95, 99, 99.9, 99.99]
 
 
 def _update_baseline(server: str) -> None:
