@@ -20,3 +20,11 @@ ignore = [
 
 [lint.isort]
 known-first-party = ["benchmarks"]
+
+[lint.per-file-ignores]
+"benchmarks/report_generator.py" = ["C4"]
+"comparison/compare.py" = ["C4"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
