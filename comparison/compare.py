@@ -23,9 +23,17 @@ def load_results(path: str) -> dict:
         return json.load(f)
 
 
+SORTED_SET_OPS = {"zadd", "zrange", "zrangebyscore", "zrem", "zcard"}
+
+
 def build_ops_map(data: dict) -> dict[str, dict]:
     """Build a map of operation name -> metrics from benchmark results."""
     return {r["operation"]: r for r in data.get("results", [])}
+
+
+def is_sorted_set_op(operation: str) -> bool:
+    """Check if an operation is a sorted set command."""
+    return operation.lower() in SORTED_SET_OPS
 
 
 def pct_diff(a: float, b: float) -> float | None:
