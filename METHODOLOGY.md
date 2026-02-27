@@ -151,6 +151,21 @@ memtier_benchmark -s 127.0.0.1 -p 6379 \
   -c 50 -t 4 --test-time=120
 ```
 
+## Reproducibility Checklist
+
+Before publishing any benchmark results, verify the following:
+
+- [ ] All servers are running the exact versions listed in **Software Versions**
+- [ ] Persistence is disabled on every server (`save ""` for Redis, equivalent for others)
+- [ ] No other workloads are running on the benchmark instance
+- [ ] Docker resource limits match the documented constraints (4 CPUs, 2 GiB RAM)
+- [ ] The warm-up phase completed without errors
+- [ ] Each scenario was run at least 3 times and the median result is reported
+- [ ] System info (OS, kernel, CPU, RAM) is recorded alongside the results
+- [ ] The `memtier_benchmark` version matches the one documented above
+- [ ] Network latency between client and server is < 0.1 ms (localhost or same host)
+- [ ] Results CSV and Markdown report are committed to the `results/` directory
+
 ## Reporting
 
 Results are published at: https://ferrite.dev/benchmarks/
