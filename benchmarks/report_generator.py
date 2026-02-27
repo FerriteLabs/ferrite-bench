@@ -41,6 +41,9 @@ BASELINE_SERVER = "redis"
 # NOTE: 99.5 removed — memtier does not emit p99.5; replaced with 99.99
 LATENCY_PERCENTILES = [50, 75, 90, 95, 99, 99.9, 99.99]
 
+# Cache parsed CSV rows to avoid re-reading large files
+_ROW_CACHE: dict[str, list] = {}
+
 
 def _update_baseline(server: str) -> None:
     global BASELINE_SERVER
