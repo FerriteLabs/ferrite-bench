@@ -27,7 +27,7 @@ TIMESTAMP="$(date -u +%Y%m%d_%H%M%S)"
 # ── Defaults ─────────────────────────────────────────────────────────────────
 
 DEFAULT_SERVERS="ferrite,redis,dragonfly,keydb,valkey"
-DEFAULT_SCENARIOS="get,set,mixed,pipeline-16,pipeline-64,large-values"
+DEFAULT_SCENARIOS="get,set,mixed,pipeline-16,pipeline-64,large-values,batch-ops"
 DEFAULT_DURATION=60
 DEFAULT_CLIENTS=50
 DEFAULT_OUTPUT_DIR="${REPO_DIR}/results"
