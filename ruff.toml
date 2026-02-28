@@ -26,5 +26,6 @@ known-first-party = ["benchmarks"]
 "comparison/compare.py" = ["C4"]
 
 [format]
+skip-magic-trailing-comma = false
 quote-style = "double"
 indent-style = "space"
