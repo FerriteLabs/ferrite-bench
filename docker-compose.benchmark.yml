@@ -36,7 +36,7 @@ services:
 
   # ── Redis 7 ───────────────────────────────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.2-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports:
       - "6381:6379"
