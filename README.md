@@ -3,10 +3,11 @@
 [![Nightly Benchmark](https://github.com/ferritelabs/ferrite-bench/actions/workflows/nightly-bench.yml/badge.svg)](https://github.com/ferritelabs/ferrite-bench/actions/workflows/nightly-bench.yml)
 [![CI](https://github.com/ferritelabs/ferrite-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/ferritelabs/ferrite-bench/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Methodology](https://img.shields.io/badge/methodology-documented-green)](METHODOLOGY.md)
 
-Performance comparison benchmarks for [Ferrite](https://github.com/ferritelabs/ferrite).
+Performance comparison benchmarks for [Ferrite](https://github.com/ferritelabs/ferrite) — a high-performance, tiered-storage key-value store.
 
-External benchmarks comparing Ferrite against Redis, Dragonfly, KeyDB, and other key-value stores.
+External benchmarks comparing Ferrite against Redis, Dragonfly, KeyDB, and other key-value stores using standardized methodology on identical hardware.
 
 > **Note:** Cargo-integrated benchmarks (`criterion`) live in the main [ferrite](https://github.com/ferritelabs/ferrite) repository under `benches/`.
 
@@ -170,6 +171,18 @@ Results are saved to `benchmarks/results/` with a markdown comparison report.
 | GNU coreutils | — | `date`, `awk`, `sort` used in scripts |
 
 Ensure Docker has at least **4 GB of RAM** allocated when running the full competitive benchmark suite (all 4 servers run concurrently).
+
+## 🌐 FerriteLabs Ecosystem
+
+| Repository | Description |
+|-----------|-------------|
+| [ferrite](https://github.com/ferritelabs/ferrite) | Core database engine (Rust, 12 crates) |
+| [ferrite-docs](https://github.com/ferritelabs/ferrite-docs) | Documentation website |
+| [ferrite-ops](https://github.com/ferritelabs/ferrite-ops) | Docker, Helm, Grafana, packaging |
+| **ferrite-bench** | 📍 You are here |
+| [vscode-ferrite](https://github.com/ferritelabs/vscode-ferrite) | VS Code extension |
+| [jetbrains-ferrite](https://github.com/ferritelabs/jetbrains-ferrite) | JetBrains IDE plugin |
+| [homebrew-tap](https://github.com/ferritelabs/homebrew-tap) | Homebrew formula |
 
 ## Contributing
 
