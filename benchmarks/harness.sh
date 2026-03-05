@@ -174,7 +174,7 @@ parse_args() {
 
 validate_inputs() {
     local valid_servers="ferrite redis dragonfly keydb valkey"
-    local valid_scenarios="get set mixed pipeline-16 pipeline-64 large-values vector"
+    local valid_scenarios="get set mixed pipeline-16 pipeline-64 large-values vector zipfian batch-ops"
 
     IFS=',' read -ra server_list <<< "$SERVERS"
     for s in "${server_list[@]}"; do
@@ -348,6 +348,8 @@ get_scenario_params() {
         pipeline-16)   echo "1:1|${DEFAULT_VALUE_SIZE}|16|Pipeline-16 Mixed" ;;
         pipeline-64)   echo "1:1|${DEFAULT_VALUE_SIZE}|64|Pipeline-64 Mixed" ;;
         large-values)  echo "1:1|10240|1|Large Values (10KB)" ;;
+        zipfian)       echo "1:9|${DEFAULT_VALUE_SIZE}|1|Zipfian Read-Heavy" ;;
+        batch-ops)     echo "1:1|${DEFAULT_VALUE_SIZE}|1|Batch Operations" ;;
         vector)        echo "1:1|${DEFAULT_VALUE_SIZE}|1|Vector Search" ;;
         *)             error "Unknown scenario: $scenario"; exit 1 ;;
     esac

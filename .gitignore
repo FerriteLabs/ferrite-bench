@@ -4,6 +4,10 @@ results/
 *.json
 *.md.tmp
 
+# Published baselines are committed (not ignored)
+!baselines/
+!baselines/**
+
 # Dependencies
 node_modules/
 

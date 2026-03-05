@@ -23,3 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated CI workflow with gitleaks secret scanning
 - Improved benchmark documentation in README
+
+[Unreleased]: https://github.com/ferritelabs/ferrite-bench/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ferritelabs/ferrite-bench/releases/tag/v0.2.0

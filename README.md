@@ -161,6 +161,49 @@ docker run -p 6379:6379 redis/redis-stack-server:latest
 
 Results are saved to `benchmarks/results/` with a markdown comparison report.
 
+## Published Baselines
+
+Reference benchmark results from standardized hardware are committed in `baselines/`:
+
+| Version | Hardware | Summary |
+|---------|----------|---------|
+| [v0.2.0](baselines/v0.2.0-summary.md) | AWS c5.2xlarge | Ferrite 22% faster than Redis, competitive with Dragonfly |
+
+See [baselines/README.md](baselines/README.md) for methodology and reproduction instructions.
+
+## Running Locally Without Docker
+
+If you prefer running benchmarks against locally-installed servers:
+
+```bash
+# 1. Start Ferrite (build from source or install via Homebrew)
+cd ../ferrite && cargo run --release -- --port 6380 &
+
+# 2. Start Redis (if comparing)
+redis-server --port 6381 --daemonize yes
+
+# 3. Run the simple comparison (uses redis-benchmark)
+cd comparison && ./run_comparison.sh
+
+# 4. Or run individual benchmark scripts
+./benchmarks/ferrite_bench.sh     # Ferrite-only throughput
+./benchmarks/persistence_bench.sh  # Persistence impact measurement
+```
+
+### Expected Output
+
+The comparison script produces a CSV file and a markdown summary table:
+
+```
+Server     | Scenario | Ops/sec  | Avg Latency | P50    | P99
+-----------|----------|----------|-------------|--------|-------
+Ferrite    | SET-only | 485,230  | 0.41ms      | 0.31ms | 1.12ms
+Redis      | SET-only | 412,100  | 0.48ms      | 0.39ms | 1.35ms
+...
+```
+
+Results are saved to `comparison/results/` (gitignored — not committed).
+
 ## Environment Requirements
 
 | Requirement | Minimum Version | Notes |
