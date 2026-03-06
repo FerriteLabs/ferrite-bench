@@ -755,3 +755,4 @@ main() {
 }
 
 main "$@"
+# Configuration: auto-detect system capabilities
