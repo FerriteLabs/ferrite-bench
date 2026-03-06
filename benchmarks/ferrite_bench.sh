@@ -267,3 +267,16 @@ main() {
 }
 
 main "$@"
+
+# ── Throughput regression check ──────────────────────────────────────────────
+# Fail if batch-ops throughput drops below baseline threshold
+BATCH_OPS_THRESHOLD="${BATCH_OPS_THRESHOLD:-50000}"
+
+check_throughput_regression() {
+    local actual_ops="$1"
+    if (( actual_ops < BATCH_OPS_THRESHOLD )); then
+        echo "REGRESSION: batch-ops throughput ${actual_ops} ops/s below threshold ${BATCH_OPS_THRESHOLD}" >&2
+        return 1
+    fi
+    echo "OK: batch-ops throughput ${actual_ops} ops/s (threshold: ${BATCH_OPS_THRESHOLD})"
+}
