@@ -170,3 +170,7 @@ Before publishing any benchmark results, verify the following:
 
 Results are published at: https://ferrite.dev/benchmarks/
 Raw data (CSV) available at: https://github.com/ferritelabs/ferrite-bench/results/
+
+## Update: March 2026
+
+Refined methodology to include warm-up phase calibration and outlier filtering.
