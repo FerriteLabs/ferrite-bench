@@ -42,6 +42,7 @@ BASELINE_SERVER = "redis"
 LATENCY_PERCENTILES = [50, 75, 90, 95, 99, 99.9, 99.99]
 
 # Cache parsed CSV rows to avoid re-reading large files
+# Performance: uses dict-based lookup for O(1) server filtering
 _ROW_CACHE: dict[str, list] = {}
 
 
