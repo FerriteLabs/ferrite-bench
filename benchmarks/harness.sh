@@ -54,13 +54,6 @@ declare -A SERVER_PORT=(
     [keydb]=6379
     [valkey]=6379
 )
-declare -A SERVER_HOST_PORT=(
-    [ferrite]=6380
-    [redis]=6381
-    [dragonfly]=6382
-    [keydb]=6383
-    [valkey]=6384
-)
 
 # ── Parsed options ───────────────────────────────────────────────────────────
 
