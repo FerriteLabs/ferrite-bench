@@ -266,8 +266,6 @@ main() {
     ok "Table → ${md_file}"
 }
 
-main "$@"
-
 # ── Throughput regression check ──────────────────────────────────────────────
 # Fail if batch-ops throughput drops below baseline threshold
 BATCH_OPS_THRESHOLD="${BATCH_OPS_THRESHOLD:-50000}"
@@ -280,3 +278,5 @@ check_throughput_regression() {
     fi
     echo "OK: batch-ops throughput ${actual_ops} ops/s (threshold: ${BATCH_OPS_THRESHOLD})"
 }
+
+main "$@"
