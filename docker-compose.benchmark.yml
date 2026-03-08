@@ -55,7 +55,7 @@ services:
 
   # ── Dragonfly ─────────────────────────────────────────────────────────────
   dragonfly:
-    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.25.5
     command: ["--logtostderr", "--proactor_threads=4"]
     ports:
       - "6382:6379"
@@ -76,7 +76,7 @@ services:
 
   # ── KeyDB ─────────────────────────────────────────────────────────────────
   keydb:
-    image: eqalpha/keydb
+    image: eqalpha/keydb:v6.3.4
     command: ["keydb-server", "--save", "", "--appendonly", "no", "--server-threads", "4"]
     ports:
       - "6383:6379"
@@ -114,7 +114,7 @@ services:
 
   # ── Qdrant (vector search) ────────────────────────────────────────────────
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.13.2
     ports:
       - "6333:6333"
       - "6334:6334"
@@ -133,7 +133,7 @@ services:
 
   # ── memtier_benchmark runner ──────────────────────────────────────────────
   memtier:
-    image: redislabs/memtier_benchmark:latest
+    image: redislabs/memtier_benchmark:2.1.0
     entrypoint: ["sleep", "infinity"]
     depends_on:
       ferrite:
@@ -152,7 +152,7 @@ services:
   # ── Standalone benchmark runner (Ferrite + Redis only) ────────────────────
   # Activate with: docker compose --profile standalone up -d
   bench-runner:
-    image: redis:7-alpine
+    image: redis:7.4.2-alpine
     profiles: ["standalone"]
     entrypoint: ["sleep", "infinity"]
     volumes:
