@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-09
+
+### Added
+- Tiered storage benchmark script for hot/warm/cold tier performance measurement
+- Persistence impact benchmark script (AOF-always vs AOF-everysec vs no-persist)
+- Hardware attestation script for benchmark reproducibility
+- Zipfian and batch-ops scenarios in benchmark harness
+
 ## [0.2.0] - 2026-02-28
 
 ### Added
@@ -24,5 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated CI workflow with gitleaks secret scanning
 - Improved benchmark documentation in README
 
-[Unreleased]: https://github.com/ferritelabs/ferrite-bench/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ferritelabs/ferrite-bench/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ferritelabs/ferrite-bench/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ferritelabs/ferrite-bench/releases/tag/v0.2.0
