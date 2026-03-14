@@ -14,10 +14,22 @@ External benchmarks comparing Ferrite against Redis, Dragonfly, KeyDB, and other
 ## Structure
 
 ```
+benchmarks/
+├── harness.sh               # Common benchmark utilities and helpers
+├── ferrite_bench.sh          # Ferrite-only throughput (cargo bench integration)
+├── redis_bench.sh            # Redis comparative testing
+├── vector_comparison.sh      # HNSW/IVF/Flat index comparison vs Qdrant/Redis
+├── persistence_bench.sh      # I/O impact of AOF modes (none/everysec/always)
+├── tiered_storage_bench.sh   # Hot/warm/cold tier performance under memory pressure
+├── resource_efficiency.sh    # Keys/MB, memory overhead per key, ops/CPU-second
+├── system_info.sh            # System diagnostics (CPU, RAM, disk, OS) as JSON
+└── report_generator.py       # Generates markdown reports from benchmark CSV output
 comparison/
-├── run_comparison.sh   # Automated Ferrite vs Redis benchmark script
-├── README.md           # Detailed usage and configuration
-└── results/            # Generated CSV output (gitignored)
+├── run_comparison.sh         # Automated Ferrite vs Redis benchmark script
+├── README.md                 # Detailed usage and configuration
+└── results/                  # Generated CSV output (gitignored)
+baselines/
+└── v0.2.0-summary.md        # Published baseline results on AWS c5.2xlarge
 ```
 
 ## Quick Start
@@ -186,8 +198,12 @@ redis-server --port 6381 --daemonize yes
 cd comparison && ./run_comparison.sh
 
 # 4. Or run individual benchmark scripts
-./benchmarks/ferrite_bench.sh     # Ferrite-only throughput
-./benchmarks/persistence_bench.sh  # Persistence impact measurement
+./benchmarks/ferrite_bench.sh          # Ferrite-only throughput
+./benchmarks/redis_bench.sh            # Redis baseline
+./benchmarks/persistence_bench.sh      # AOF mode impact measurement
+./benchmarks/tiered_storage_bench.sh   # Hot/warm/cold tier under memory pressure
+./benchmarks/resource_efficiency.sh    # Memory overhead per key
+./benchmarks/vector_comparison.sh      # Vector search vs Qdrant/Redis
 ```
 
 ### Expected Output
