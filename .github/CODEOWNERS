@@ -1,10 +1,12 @@
 # Default owners for everything
-* @josedab
+* @ferritelabs/core
 
 # Benchmark scripts and methodology
 /benchmarks/ @josedab
 /comparison/ @josedab
+/moonshots/ @ferritelabs/moonshots
 /METHODOLOGY.md @josedab
 
 # CI/CD and infrastructure
 /.github/ @josedab
+/scripts/ @ferritelabs/devops
