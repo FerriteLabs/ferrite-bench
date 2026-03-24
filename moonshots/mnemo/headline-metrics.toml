@@ -1,0 +1,20 @@
+# Mnemo (M1) — Headline Metrics for Regression Detection
+# Any metric regressing by > threshold_percent triggers CI failure.
+
+[recall_latency_p50]
+metric_path = "metrics.recall_latency_p50_us"
+unit = "µs"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[recall_latency_p99]
+metric_path = "metrics.recall_latency_p99_us"
+unit = "µs"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[write_throughput]
+metric_path = "metrics.write_throughput_ops"
+unit = "ops/sec"
+direction = "higher_is_better"
+threshold_percent = 5.0

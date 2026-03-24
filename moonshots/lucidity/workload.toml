@@ -1,0 +1,25 @@
+# Lucidity (M3) — Verifiable Audit Workload Configuration
+
+[general]
+moonshot = "lucidity"
+description = "Audit log overhead and proof generation benchmarks"
+seed = 42
+warmup_seconds = 10
+duration_seconds = 600
+
+[audit_overhead]
+key_count = 1_000_000
+value_size_bytes = 256
+concurrency = [1, 8, 64]
+pipeline_depth = 16
+audit_modes = ["off", "on"]
+
+[proof_time]
+log_sizes = [100_000, 1_000_000, 10_000_000]
+proof_type = "merkle_inclusion"
+trials_per_size = 100
+
+[zk_proof_time]
+window_size = 1_000
+proof_system = "groth16"
+trials = 50

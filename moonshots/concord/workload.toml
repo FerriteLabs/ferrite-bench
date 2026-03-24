@@ -1,0 +1,28 @@
+# Concord (M5) — CRDT Multi-Region Workload Configuration
+
+[general]
+moonshot = "concord"
+description = "CRDT convergence, metadata overhead, and conflict benchmarks"
+seed = 42
+warmup_seconds = 10
+duration_seconds = 600
+
+[convergence_time]
+regions = 2
+key_count = 100_000
+write_rate_per_region = 10_000
+partition_duration_seconds = 30
+value_size_bytes = 256
+trials = 10
+
+[metadata_overhead]
+key_count = 100_000
+crdt_types = ["counter", "or_set", "lww_register"]
+value_size_bytes = 256
+replica_count = [2, 3, 5]
+
+[conflict_rate]
+key_count = 100_000
+write_concurrency = [2, 4, 8]
+write_skew_percent = [1, 5, 10, 25, 50]
+value_size_bytes = 256

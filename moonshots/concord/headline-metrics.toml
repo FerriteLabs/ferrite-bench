@@ -1,0 +1,20 @@
+# Concord (M5) — Headline Metrics for Regression Detection
+# Any metric regressing by > threshold_percent triggers CI failure.
+
+[convergence_time]
+metric_path = "metrics.convergence_time_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[metadata_overhead]
+metric_path = "metrics.metadata_overhead_bytes_per_key"
+unit = "bytes/key"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[conflict_rate]
+metric_path = "metrics.conflict_rate_pct"
+unit = "%"
+direction = "lower_is_better"
+threshold_percent = 5.0

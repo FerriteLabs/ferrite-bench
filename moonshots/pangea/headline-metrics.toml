@@ -1,0 +1,32 @@
+# Pangea (M6) — Headline Metrics for Regression Detection
+# Any metric regressing by > threshold_percent triggers CI failure.
+
+[tier_promotion_cost]
+metric_path = "metrics.tier_promotion_cost_us"
+unit = "µs"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[working_set_perf_0_5x]
+metric_path = "metrics.working_set_perf_0_5x_ops"
+unit = "ops/sec"
+direction = "higher_is_better"
+threshold_percent = 5.0
+
+[working_set_perf_1x]
+metric_path = "metrics.working_set_perf_1x_ops"
+unit = "ops/sec"
+direction = "higher_is_better"
+threshold_percent = 5.0
+
+[working_set_perf_2x]
+metric_path = "metrics.working_set_perf_2x_ops"
+unit = "ops/sec"
+direction = "higher_is_better"
+threshold_percent = 5.0
+
+[numa_locality]
+metric_path = "metrics.numa_locality_ratio"
+unit = "ratio"
+direction = "lower_is_better"
+threshold_percent = 5.0

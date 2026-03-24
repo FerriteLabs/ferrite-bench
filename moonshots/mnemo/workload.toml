@@ -1,0 +1,26 @@
+# Mnemo (M1) — Semantic Memory Workload Configuration
+
+[general]
+moonshot = "mnemo"
+description = "Semantic memory recall/write benchmarks"
+seed = 42
+warmup_seconds = 10
+duration_seconds = 600
+
+[recall_latency]
+dataset_size = 1_000_000
+embedding_dim = 768
+query_count = 10_000
+concurrency = [1, 8, 64]
+top_k = 10
+
+[eval_longmemeval]
+dataset = "longmemeval-v1"
+dataset_url = "https://huggingface.co/datasets/longmemeval"
+max_sessions = 500
+
+[write_throughput]
+record_count = 1_000_000
+value_size_bytes = 512
+concurrency = [1, 8, 64]
+pipeline_depth = 16

@@ -1,0 +1,26 @@
+# Chronicle (M4) — Git-style Versioning Workload Configuration
+
+[general]
+moonshot = "chronicle"
+description = "Branch, merge, and point-in-time restore benchmarks"
+seed = 42
+warmup_seconds = 10
+duration_seconds = 600
+
+[branch_create_time]
+dataset_sizes = [1_000_000, 10_000_000, 100_000_000]
+value_size_bytes = 256
+trials_per_size = 20
+
+[merge_time]
+base_key_count = 1_000_000
+conflicting_keys = 10_000
+value_size_bytes = 256
+merge_strategy = "three_way"
+trials = 20
+
+[pitr_restore]
+dataset_size = 10_000_000
+value_size_bytes = 256
+snapshot_age_seconds = [60, 3600, 86400]
+trials = 10

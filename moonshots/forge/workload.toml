@@ -1,0 +1,27 @@
+# Forge (M2) — Embedded Functions Workload Configuration
+
+[general]
+moonshot = "forge"
+description = "WASM/JS embedded function invocation benchmarks"
+seed = 42
+warmup_seconds = 10
+duration_seconds = 300
+
+[warm_call_p99]
+function_name = "noop"
+runtime = "wasm"
+invocation_count = 100_000
+concurrency = [1, 8, 64]
+ga_threshold_us = 50
+
+[cold_load_time]
+module_sizes_kb = [1, 10, 100, 1000]
+trials = 50
+
+[kv_throughput_overhead]
+key_count = 100_000
+value_size_bytes = 256
+concurrency = 64
+pipeline_depth = 16
+baseline_command = "GET"
+function_name = "passthrough"

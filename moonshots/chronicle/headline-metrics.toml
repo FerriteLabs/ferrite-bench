@@ -1,0 +1,32 @@
+# Chronicle (M4) — Headline Metrics for Regression Detection
+# Any metric regressing by > threshold_percent triggers CI failure.
+
+[branch_create_time_1m]
+metric_path = "metrics.branch_create_time_1m_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[branch_create_time_10m]
+metric_path = "metrics.branch_create_time_10m_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[branch_create_time_100m]
+metric_path = "metrics.branch_create_time_100m_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[merge_time]
+metric_path = "metrics.merge_time_10k_conflicts_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[pitr_restore]
+metric_path = "metrics.pitr_restore_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0

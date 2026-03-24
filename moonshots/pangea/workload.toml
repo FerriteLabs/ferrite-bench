@@ -1,0 +1,37 @@
+# Pangea (M6) — CXL / Tiered-Memory Workload Configuration
+
+[general]
+moonshot = "pangea"
+description = "CXL memory tiering, NUMA locality, and working-set benchmarks"
+seed = 42
+warmup_seconds = 10
+duration_seconds = 600
+
+[tier_promotion_cost]
+key_count = 1_000_000
+value_size_bytes = 256
+cold_ratio = 0.9
+promotion_batch_size = 1000
+trials = 50
+
+[working_set_perf]
+dram_capacity_gib = 16
+working_set_ratios = [0.5, 1.0, 2.0]
+key_count = 10_000_000
+value_size_bytes = 256
+concurrency = 64
+access_pattern = "zipfian"
+zipfian_constant = 0.99
+
+[numa_locality]
+socket_count = 2
+cxl_devices_per_socket = 1
+key_count = 1_000_000
+value_size_bytes = 256
+concurrency = 64
+pin_threads = true
+
+[simulation]
+# Set to true to simulate CXL with numactl on multi-socket systems
+simulate_cxl = false
+numa_membind_node = 1

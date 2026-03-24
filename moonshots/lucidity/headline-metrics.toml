@@ -1,0 +1,32 @@
+# Lucidity (M3) — Headline Metrics for Regression Detection
+# Any metric regressing by > threshold_percent triggers CI failure.
+
+[audit_overhead]
+metric_path = "metrics.audit_overhead_throughput_delta_pct"
+unit = "%"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[proof_time_1e5]
+metric_path = "metrics.proof_time_1e5_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[proof_time_1e6]
+metric_path = "metrics.proof_time_1e6_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[proof_time_1e7]
+metric_path = "metrics.proof_time_1e7_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[zk_proof_time]
+metric_path = "metrics.zk_proof_time_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0

@@ -1,0 +1,21 @@
+# Forge (M2) — Headline Metrics for Regression Detection
+# Any metric regressing by > threshold_percent triggers CI failure.
+
+[warm_call_p99]
+metric_path = "metrics.warm_call_p99_us"
+unit = "µs"
+direction = "lower_is_better"
+threshold_percent = 5.0
+hard_ceiling_us = 50.0  # GA gate: must be < 50 µs
+
+[cold_load_time]
+metric_path = "metrics.cold_load_time_ms"
+unit = "ms"
+direction = "lower_is_better"
+threshold_percent = 5.0
+
+[kv_throughput_overhead]
+metric_path = "metrics.kv_throughput_ops"
+unit = "ops/sec"
+direction = "higher_is_better"
+threshold_percent = 5.0
