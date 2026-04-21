@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-20
+
+### Added
+
+- Moonshot benchmark harness specification (`MOONSHOT_HARNESS.md`) defining the contract for M1–M6 benchmarks
+- Benchmark workload configurations for all 6 moonshot crates (`moonshots/`): Chronicle, Concord, Forge, Lucidity, Mnemo, Pangea
+- Each moonshot workload includes `workload.toml`, `headline-metrics.toml`, and a reproducible `run.sh` entrypoint
+- Benchmark result comparison script (`scripts/compare.py`) for cross-release and cross-moonshot analysis
+
 ## [0.3.0] - 2026-03-09
 
 ### Added
