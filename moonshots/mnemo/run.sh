@@ -42,21 +42,21 @@ MISSING_SIGNALS=()
 
 run_recall_latency() {
     echo "--- recall-latency ---"
-    # TODO: invoke ferrite-bench recall-latency with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for recall-latency with params from workload.toml
     echo "  [placeholder] recall-latency benchmark not yet wired"
     MISSING_SIGNALS+=("recall-latency")
 }
 
 run_write_throughput() {
     echo "--- write-throughput ---"
-    # TODO: invoke ferrite-bench write-throughput with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for write-throughput with params from workload.toml
     echo "  [placeholder] write-throughput benchmark not yet wired"
     MISSING_SIGNALS+=("write-throughput")
 }
 
 run_longmemeval() {
     echo "--- eval-longmemeval ---"
-    # TODO: invoke ferrite-bench eval-longmemeval with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for eval-longmemeval with params from workload.toml
     echo "  [placeholder] eval-longmemeval benchmark not yet wired"
     MISSING_SIGNALS+=("eval-longmemeval")
 }

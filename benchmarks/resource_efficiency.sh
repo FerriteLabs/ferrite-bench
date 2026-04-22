@@ -42,8 +42,12 @@ for num_keys in "${SIZES[@]}"; do
     # Measure memory after population
     after_rss=$($REDIS_CLI -p "$FERRITE_PORT" INFO memory 2>/dev/null | grep "used_memory:" | cut -d: -f2 | tr -d '\r' || echo "0")
 
-    # Calculate metrics
+    # Calculate metrics (guard against negative delta from memory reclamation)
     delta_bytes=$((after_rss - baseline_rss))
+    if [ "$delta_bytes" -lt 0 ]; then
+      echo "  WARNING: negative RSS delta (${delta_bytes}B) — memory may have been reclaimed during test"
+      delta_bytes=0
+    fi
     delta_kb=$((delta_bytes / 1024))
     theoretical_bytes=$((num_keys * (vsize + 20)))  # key + value + ~20 bytes overhead estimate
 

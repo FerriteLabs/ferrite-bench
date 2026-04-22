@@ -42,21 +42,21 @@ MISSING_SIGNALS=()
 
 run_convergence() {
     echo "--- convergence-time ---"
-    # TODO: invoke ferrite-bench convergence-time with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for convergence-time with params from workload.toml
     echo "  [placeholder] convergence-time benchmark not yet wired"
     MISSING_SIGNALS+=("convergence-time")
 }
 
 run_metadata_overhead() {
     echo "--- metadata-overhead ---"
-    # TODO: invoke ferrite-bench metadata-overhead with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for metadata-overhead with params from workload.toml
     echo "  [placeholder] metadata-overhead benchmark not yet wired"
     MISSING_SIGNALS+=("metadata-overhead")
 }
 
 run_conflict_rate() {
     echo "--- conflict-rate ---"
-    # TODO: invoke ferrite-bench conflict-rate with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for conflict-rate with params from workload.toml
     echo "  [placeholder] conflict-rate benchmark not yet wired"
     MISSING_SIGNALS+=("conflict-rate")
 }

@@ -42,21 +42,21 @@ MISSING_SIGNALS=()
 
 run_tier_promotion() {
     echo "--- tier-promotion-cost ---"
-    # TODO: invoke ferrite-bench tier-promotion with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for tier-promotion with params from workload.toml
     echo "  [placeholder] tier-promotion-cost benchmark not yet wired"
     MISSING_SIGNALS+=("tier-promotion-cost")
 }
 
 run_working_set() {
     echo "--- working-set-perf ---"
-    # TODO: invoke ferrite-bench working-set with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for working-set with params from workload.toml
     echo "  [placeholder] working-set-perf benchmark not yet wired"
     MISSING_SIGNALS+=("working-set-perf")
 }
 
 run_numa_locality() {
     echo "--- numa-locality ---"
-    # TODO: invoke ferrite-bench numa-locality with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for numa-locality with params from workload.toml
     echo "  [placeholder] numa-locality benchmark not yet wired"
     MISSING_SIGNALS+=("numa-locality")
 }

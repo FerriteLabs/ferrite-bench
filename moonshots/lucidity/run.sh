@@ -42,21 +42,21 @@ MISSING_SIGNALS=()
 
 run_audit_overhead() {
     echo "--- audit-overhead ---"
-    # TODO: invoke ferrite-bench audit-overhead with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for audit-overhead with params from workload.toml
     echo "  [placeholder] audit-overhead benchmark not yet wired"
     MISSING_SIGNALS+=("audit-overhead")
 }
 
 run_proof_time() {
     echo "--- proof-time ---"
-    # TODO: invoke ferrite-bench proof-time with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for proof-time with params from workload.toml
     echo "  [placeholder] proof-time benchmark not yet wired"
     MISSING_SIGNALS+=("proof-time")
 }
 
 run_zk_proof_time() {
     echo "--- zk-proof-time ---"
-    # TODO: invoke ferrite-bench zk-proof-time with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for zk-proof-time with params from workload.toml
     echo "  [placeholder] zk-proof-time benchmark not yet wired"
     MISSING_SIGNALS+=("zk-proof-time")
 }

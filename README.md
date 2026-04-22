@@ -235,7 +235,7 @@ Ensure Docker has at least **4 GB of RAM** allocated when running the full compe
 
 | Repository | Description |
 |-----------|-------------|
-| [ferrite](https://github.com/ferritelabs/ferrite) | Core database engine (Rust, 12 crates) |
+| [ferrite](https://github.com/ferritelabs/ferrite) | Core database engine (Rust, 19 crates) |
 | [ferrite-docs](https://github.com/ferritelabs/ferrite-docs) | Documentation website |
 | [ferrite-ops](https://github.com/ferritelabs/ferrite-ops) | Docker, Helm, Grafana, packaging |
 | **ferrite-bench** | 📍 You are here |

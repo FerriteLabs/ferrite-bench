@@ -19,8 +19,18 @@ from pathlib import Path
 
 def load_results(path: str) -> dict:
     """Load benchmark results from a JSON file."""
-    with open(path) as f:
-        return json.load(f)
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: benchmark results file not found: {path}", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: invalid JSON in {path}: {e}", file=sys.stderr)
+        sys.exit(1)
+    if "results" not in data:
+        print(f"Warning: no 'results' key in {path}", file=sys.stderr)
+    return data
 
 
 SORTED_SET_OPS = {"zadd", "zrange", "zrangebyscore", "zrem", "zcard"}
@@ -36,9 +46,9 @@ def is_sorted_set_op(operation: str) -> bool:
     return operation.lower() in SORTED_SET_OPS
 
 
-def pct_diff(a: float, b: float) -> float | None:
+def pct_diff(a: float | None, b: float | None) -> float | None:
     """Compute percentage difference: ((a - b) / b) * 100."""
-    if b == 0:
+    if a is None or b is None or b == 0:
         return None
     return ((a - b) / b) * 100
 
@@ -76,18 +86,22 @@ def generate_comparison(ferrite: dict, redis: dict) -> dict:
         f = f_ops.get(op, {})
         r = r_ops.get(op, {})
 
+        # Use None for missing data instead of 0 to distinguish "not tested" from "zero"
+        f_missing = op not in f_ops
+        r_missing = op not in r_ops
+
         entry = {
             "operation": op,
-            "ferrite_ops_sec": f.get("ops_per_sec", 0),
-            "redis_ops_sec": r.get("ops_per_sec", 0),
-            "ferrite_avg_ms": f.get("avg_latency_ms", 0),
-            "redis_avg_ms": r.get("avg_latency_ms", 0),
-            "ferrite_p50_ms": f.get("p50_latency_ms", 0),
-            "redis_p50_ms": r.get("p50_latency_ms", 0),
-            "ferrite_p99_ms": f.get("p99_latency_ms", 0),
-            "redis_p99_ms": r.get("p99_latency_ms", 0),
-            "ferrite_p999_ms": f.get("p999_latency_ms", 0),
-            "redis_p999_ms": r.get("p999_latency_ms", 0),
+            "ferrite_ops_sec": None if f_missing else f.get("ops_per_sec", 0),
+            "redis_ops_sec": None if r_missing else r.get("ops_per_sec", 0),
+            "ferrite_avg_ms": None if f_missing else f.get("avg_latency_ms", 0),
+            "redis_avg_ms": None if r_missing else r.get("avg_latency_ms", 0),
+            "ferrite_p50_ms": None if f_missing else f.get("p50_latency_ms", 0),
+            "redis_p50_ms": None if r_missing else r.get("p50_latency_ms", 0),
+            "ferrite_p99_ms": None if f_missing else f.get("p99_latency_ms", 0),
+            "redis_p99_ms": None if r_missing else r.get("p99_latency_ms", 0),
+            "ferrite_p999_ms": None if f_missing else f.get("p999_latency_ms", 0),
+            "redis_p999_ms": None if r_missing else r.get("p999_latency_ms", 0),
         }
 
         # Throughput: higher is better

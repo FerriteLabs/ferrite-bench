@@ -42,21 +42,21 @@ MISSING_SIGNALS=()
 
 run_warm_call() {
     echo "--- warm-call-p99 ---"
-    # TODO: invoke ferrite-bench warm-call with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for warm-call with params from workload.toml
     echo "  [placeholder] warm-call-p99 benchmark not yet wired"
     MISSING_SIGNALS+=("warm-call-p99")
 }
 
 run_cold_load() {
     echo "--- cold-load-time ---"
-    # TODO: invoke ferrite-bench cold-load with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for cold-load with params from workload.toml
     echo "  [placeholder] cold-load-time benchmark not yet wired"
     MISSING_SIGNALS+=("cold-load-time")
 }
 
 run_kv_overhead() {
     echo "--- kv-throughput-overhead ---"
-    # TODO: invoke ferrite-bench kv-throughput-overhead with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for kv-throughput-overhead with params from workload.toml
     echo "  [placeholder] kv-throughput-overhead benchmark not yet wired"
     MISSING_SIGNALS+=("kv-throughput-overhead")
 }

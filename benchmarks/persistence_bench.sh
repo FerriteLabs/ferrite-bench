@@ -68,4 +68,3 @@ done
 echo "=== Summary ==="
 echo "Compare results in: $OUTDIR"
 echo "Use: python3 benchmarks/report_generator.py $OUTDIR/*.json"
-# Fix: use elapsed wall-clock time for throughput calculation

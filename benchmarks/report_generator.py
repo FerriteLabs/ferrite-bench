@@ -602,4 +602,3 @@ examples:
 
 if __name__ == "__main__":
     sys.exit(main())
-# TODO: add p50/p95/p99 latency comparison charts

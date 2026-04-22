@@ -42,21 +42,21 @@ MISSING_SIGNALS=()
 
 run_branch_create() {
     echo "--- branch-create-time ---"
-    # TODO: invoke ferrite-bench branch-create with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for branch-create with params from workload.toml
     echo "  [placeholder] branch-create-time benchmark not yet wired"
     MISSING_SIGNALS+=("branch-create-time")
 }
 
 run_merge_time() {
     echo "--- merge-time ---"
-    # TODO: invoke ferrite-bench merge-time with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for merge-time with params from workload.toml
     echo "  [placeholder] merge-time benchmark not yet wired"
     MISSING_SIGNALS+=("merge-time")
 }
 
 run_pitr_restore() {
     echo "--- pitr-restore ---"
-    # TODO: invoke ferrite-bench pitr-restore with params from workload.toml
+    # Stub: awaiting ferrite-bench CLI integration for pitr-restore with params from workload.toml
     echo "  [placeholder] pitr-restore benchmark not yet wired"
     MISSING_SIGNALS+=("pitr-restore")
 }
