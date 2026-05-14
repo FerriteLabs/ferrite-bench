@@ -39,10 +39,10 @@ jobs:
     steps:
       # ── Checkout repos ──────────────────────────────────────────────────────
       - name: Checkout ferrite-bench
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout ferrite
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ferritelabs/ferrite
           ref: ${{ github.event.inputs.ferrite_ref || 'main' }}
