@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
+import importlib
 import io
 import subprocess
 import sys
@@ -13,19 +13,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "benchmarks" / "report_generator.py"
-
-
-def load_module():
-    spec = importlib.util.spec_from_file_location("report_generator", MODULE_PATH)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Cannot load {MODULE_PATH}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-report_generator = load_module()
+report_generator = importlib.import_module("benchmarks.report_generator")
 
 
 class ReportGeneratorTests(unittest.TestCase):
@@ -115,6 +103,28 @@ class ReportGeneratorTests(unittest.TestCase):
         self.assertIn("| ferrite | 125.00 | N/A | N/A | N/A | N/A | 0.0 | N/A |", markdown)
         self.assertIn("| GET — café | 125.0% |", markdown)
         self.assertIn("## Latency Percentile Distribution", markdown)
+
+    def test_generate_markdown_uses_updated_baseline_for_relative_performance(self) -> None:
+        row = report_generator.BenchmarkRow
+        data = report_generator.ReportData(
+            rows=[
+                row("redis", "get", "GET", "0:1", "1", 128, 60, 100.0, 1, 1, 1, 1, 1, 1),
+                row("valkey", "get", "GET", "0:1", "1", 128, 60, 50.0, 1, 1, 1, 1, 1, 1),
+                row("ferrite", "get", "GET", "0:1", "1", 128, 60, 200.0, 1, 1, 1, 1, 1, 1),
+            ],
+            servers=["redis", "valkey", "ferrite"],
+            scenarios=["get"],
+            labels={"get": "GET"},
+        )
+        output = io.StringIO()
+        report_generator._update_baseline("valkey")
+
+        with mock.patch.object(report_generator, "get_system_info", return_value=[]):
+            report_generator.generate_markdown(data, output)
+
+        markdown = output.getvalue()
+        self.assertIn("Relative Performance (vs valkey = 100%)", markdown)
+        self.assertIn("| GET | 200.0% | 400.0% |", markdown)
 
     def test_cli_fails_explicitly_when_no_valid_input_exists(self) -> None:
         result = subprocess.run(
