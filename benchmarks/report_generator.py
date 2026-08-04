@@ -19,13 +19,11 @@ import csv
 import math
 import os
 import platform
-import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TextIO
-
 
 # ── Data model ───────────────────────────────────────────────────────────────
 
@@ -156,7 +154,7 @@ def load_csv(paths: list[str]) -> ReportData:
                         cpu_percent=parse_float(raw_row.get("cpu_percent", "0")),
                         memory_mib=parse_float(raw_row.get("memory_mib", "0")),
                     )
-                except Exception as exc:
+                except (AttributeError, TypeError, ValueError) as exc:
                     print(
                         f"Warning: Skipping malformed row at {path}:{line_num}: {exc}",
                         file=sys.stderr,
@@ -263,7 +261,7 @@ def get_system_info() -> list[tuple[str, str]]:
             capture_output=True, text=True, timeout=5,
         )
         info.append(("Docker", result.stdout.strip()))
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         info.append(("Docker", "N/A"))
 
     # Docker Compose version
@@ -273,7 +271,7 @@ def get_system_info() -> list[tuple[str, str]]:
             capture_output=True, text=True, timeout=5,
         )
         info.append(("Docker Compose", result.stdout.strip()))
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         info.append(("Docker Compose", "N/A"))
 
     # CPU count
@@ -492,20 +490,14 @@ def generate_markdown(data: ReportData, out: TextIO) -> None:
     out.write("\n")
 
     # ── Latency Percentile Histogram ─────────────────────────────────
-    out.write("## Latency Percentile Distribution
-
-")
+    out.write("## Latency Percentile Distribution\n\n")
     for scenario in data.scenarios:
         label = data.labels.get(scenario, scenario)
-        out.write(f"### {label} — Latency Percentiles
-
-")
+        out.write(f"### {label} — Latency Percentiles\n\n")
         header = "| Percentile |" + "".join(f" {s} (ms) |" for s in data.servers)
         sep = "|-----------|" + "".join("--------:|" for _ in data.servers)
-        out.write(header + "
-")
-        out.write(sep + "
-")
+        out.write(header + "\n")
+        out.write(sep + "\n")
         for pctl in LATENCY_PERCENTILES:
             line = f"| p{pctl} |"
             for server in data.servers:
@@ -521,12 +513,9 @@ def generate_markdown(data: ReportData, out: TextIO) -> None:
                         line += " — |"
                 else:
                     line += " N/A |"
-            out.write(line + "
-")
-        out.write("
-")
-    out.write("
-")
+            out.write(line + "\n")
+        out.write("\n")
+    out.write("\n")
 
     # ── Footer ───────────────────────────────────────────────────────────
     out.write("---\n\n")
@@ -583,7 +572,7 @@ examples:
 
     print(
         f"Loaded {len(data.rows)} measurements: "
-        f"{len(data.servers)} servers × {len(data.scenarios)} scenarios",
+        f"{len(data.servers)} servers x {len(data.scenarios)} scenarios",
         file=sys.stderr,
     )
 

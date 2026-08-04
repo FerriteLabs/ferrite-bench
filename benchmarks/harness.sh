@@ -35,7 +35,6 @@ DEFAULT_THREADS=8
 DEFAULT_KEY_COUNT=1000000
 DEFAULT_VALUE_SIZE=256
 DEFAULT_WARMUP=15
-DEFAULT_PERCENTILES="50,75,90,95,99,99.5,99.9,99.99"
 DEFAULT_TIMEOUT=900
 
 # ── Server registry ──────────────────────────────────────────────────────────
@@ -213,8 +212,6 @@ check_prereqs() {
 
 # ── Docker lifecycle ─────────────────────────────────────────────────────────
 
-COMPOSE_SERVICES_STARTED=()
-
 cleanup() {
     local exit_code=$?
     echo ""
@@ -236,8 +233,6 @@ start_services() {
 
     info "Starting Docker services: ${services_to_start[*]}"
     docker compose -f "$COMPOSE_FILE" up -d "${services_to_start[@]}" 2>&1 | head -20
-    COMPOSE_SERVICES_STARTED=("${services_to_start[@]}")
-
     wait_for_healthy "${server_list[@]}"
 }
 
@@ -332,6 +327,42 @@ except Exception:
 
 # ── Scenario execution ───────────────────────────────────────────────────────
 
+parse_memtier_json() {
+    python3 -c '
+import json
+import sys
+
+try:
+    data = json.load(sys.stdin)
+    all_stats = data["ALL STATS"]
+    totals = all_stats["Totals"]
+    ops_sec = float(totals["Ops/sec"])
+    avg_latency = float(totals["Latency"])
+
+    sets_percentiles = all_stats.get("Sets", {}).get("Percentile Latencies", {})
+    gets_percentiles = all_stats.get("Gets", {}).get("Percentile Latencies", {})
+
+    def highest_percentile(key):
+        values = []
+        for percentiles in (sets_percentiles, gets_percentiles):
+            value = float(percentiles.get(key, 0))
+            if value > 0:
+                values.append(value)
+        return max(values, default=0.0)
+
+    p50 = highest_percentile("p50.00000")
+    p99 = highest_percentile("p99.00000")
+    p999 = highest_percentile("p99.90000")
+    print(
+        f"{ops_sec:.2f},{avg_latency:.3f},"
+        f"{p50:.3f},{p99:.3f},{p999:.3f}"
+    )
+except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+    print(f"Error: invalid memtier JSON: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+'
+}
+
 get_scenario_params() {
     local scenario="$1"
     # Returns: ratio|data_size|pipeline|label
@@ -393,10 +424,6 @@ run_benchmark() {
     flush_server "$host" "$port"
     run_warmup "$host" "$port" "$data_size"
 
-    # Collect pre-run resource snapshot
-    local pre_resources
-    pre_resources=$(collect_resource_usage "$server")
-
     # Run the actual benchmark with timeout protection
     local json_output=""
     local run_ok=true
@@ -430,37 +457,8 @@ run_benchmark() {
 
     # Parse JSON results
     local results
-    results=$(echo "$json_output" | python3 -c "
-import sys, json
-
-try:
-    d = json.load(sys.stdin)
-    totals = d['ALL STATS']['Totals']
-    ops_sec = totals.get('Ops/sec', 0)
-    avg_lat = totals.get('Latency', 0)
-
-    # Percentile latencies — check both Sets and Gets
-    sets_pct = d['ALL STATS'].get('Sets', {}).get('Percentile Latencies', {})
-    gets_pct = d['ALL STATS'].get('Gets', {}).get('Percentile Latencies', {})
-
-    def best_pct(key):
-        vals = []
-        for pct in [sets_pct, gets_pct]:
-            v = pct.get(key, 0)
-            if v > 0:
-                vals.append(v)
-        return max(vals) if vals else 0
-
-    p50 = best_pct('p50.00000')
-    p99 = best_pct('p99.00000')
-    p999 = best_pct('p99.90000')
-
-    print(f'{ops_sec:.2f},{avg_lat:.3f},{p50:.3f},{p99:.3f},{p999:.3f}')
-except Exception as e:
-    print('0.00,0.000,0.000,0.000,0.000', file=sys.stdout)
-" 2>/dev/null)
-
-    if [[ -z "$results" ]]; then
+    if ! results=$(printf '%s' "$json_output" | parse_memtier_json); then
+        warn "  Could not parse benchmark output for ${server}/${scenario}"
         results="0.00,0.000,0.000,0.000,0.000"
     fi
 
@@ -747,5 +745,7 @@ main() {
     info "Done. ${total_runs} benchmark runs completed."
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi
 # Configuration: auto-detect system capabilities
