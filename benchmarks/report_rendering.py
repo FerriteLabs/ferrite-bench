@@ -84,7 +84,8 @@ def generate_markdown(
     out.write("| Parameter | Value |\n")
     out.write("|-----------|-------|\n")
     out.write("| Tool | memtier_benchmark (Docker) |\n")
-    out.write(f"| Duration per scenario | {sample.duration_secs}s |\n")
+    duration = f"{sample.duration_secs}s" if sample.duration_secs > 0 else "N/A"
+    out.write(f"| Duration per scenario | {duration} |\n")
     out.write(f"| Servers tested | {', '.join(data.servers)} |\n")
     out.write(f"| Scenarios | {len(data.scenarios)} |\n")
     out.write("| Resource limits | 4 CPUs, 2 GiB RAM per server |\n\n")

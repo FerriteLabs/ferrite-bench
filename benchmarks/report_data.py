@@ -153,10 +153,8 @@ def load_csv(paths: list[str]) -> ReportData:
                     label=_text(raw_row, "label", scenario),
                     ratio=_text(raw_row, "ratio"),
                     pipeline=_text(raw_row, "pipeline", "1"),
-                    data_size_bytes=parse_int(
-                        raw_row.get("data_size_bytes") or "128"
-                    ),
-                    duration_secs=parse_int(raw_row.get("duration_secs") or "60"),
+                    data_size_bytes=parse_int(raw_row.get("data_size_bytes", "128")),
+                    duration_secs=parse_int(raw_row.get("duration_secs", "60")),
                     ops_sec=parse_float(raw_row.get("ops_sec")),
                     avg_latency_ms=parse_float(raw_row.get("avg_latency_ms")),
                     p50_latency_ms=parse_float(raw_row.get("p50_latency_ms")),

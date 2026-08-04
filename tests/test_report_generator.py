@@ -81,6 +81,24 @@ class ReportGeneratorTests(unittest.TestCase):
         self.assertIsNone(relative["ferrite"]["set"])
         self.assertIsNone(relative["ferrite"]["missing"])
 
+    def test_blank_duration_is_not_replaced_with_plausible_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write_csv(
+                Path(tmp),
+                "server,scenario,label,ratio,pipeline,data_size_bytes,duration_secs,"
+                "ops_sec,avg_latency_ms,p50_latency_ms,p99_latency_ms,p999_latency_ms,"
+                "cpu_percent,memory_mib\n"
+                "redis,get,GET,0:1,1,128,,1000,1,0.5,2,3,10,64\n",
+            )
+            data = report_generator.load_csv([str(path)])
+
+        output = io.StringIO()
+        with mock.patch.object(report_generator, "get_system_info", return_value=[]):
+            report_generator.generate_markdown(data, output)
+
+        self.assertEqual(data.rows[0].duration_secs, 0)
+        self.assertIn("| Duration per scenario | N/A |", output.getvalue())
+
     def test_generate_markdown_formats_missing_and_unicode_data(self) -> None:
         row = report_generator.BenchmarkRow
         data = report_generator.ReportData(
