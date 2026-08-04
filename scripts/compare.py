@@ -15,9 +15,13 @@ Example:
         moonshots/mnemo/results/mnemo-20260418T100000Z.json
 """
 
+from __future__ import annotations
+
 import json
+import math
 import sys
 from pathlib import Path
+from typing import Any
 
 try:
     import tomllib  # Python 3.11+
@@ -46,7 +50,42 @@ def resolve_metric(data: dict, path: str) -> float | None:
         return None
 
 
-def compute_change(baseline: float, candidate: float, direction: str) -> tuple[float, bool]:
+class ComparisonError(ValueError):
+    """Raised when result data or metric configuration is invalid."""
+
+
+def numeric_setting(
+    spec: dict[str, Any],
+    name: str,
+    metric_name: str,
+    default: float | None = None,
+) -> float | None:
+    """Return a finite numeric metric setting or raise an explicit config error."""
+    value = spec.get(name, default)
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ComparisonError(
+            f"Invalid {name} for headline metric {metric_name}: {value!r}"
+        )
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ComparisonError(
+            f"Invalid {name} for headline metric {metric_name}: {value!r}"
+        ) from exc
+    if not math.isfinite(number):
+        raise ComparisonError(
+            f"Invalid {name} for headline metric {metric_name}: {value!r}"
+        )
+    return number
+
+
+def compute_change(
+    baseline: float,
+    candidate: float,
+    direction: str,
+) -> tuple[float, bool]:
     """
     Return (percent_change, is_regression).
 
@@ -60,55 +99,66 @@ def compute_change(baseline: float, candidate: float, direction: str) -> tuple[f
     if direction == "lower_is_better":
         # Increase is bad
         return (raw_pct, raw_pct > 0)
-    else:
+    if direction == "higher_is_better":
         # Decrease is bad
         return (-raw_pct, raw_pct < 0)
+    raise ComparisonError(f"Unsupported metric direction: {direction}")
 
 
-def main() -> int:
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <baseline.json> <candidate.json>", file=sys.stderr)
-        return 2
+def load_json(path: Path) -> dict[str, Any]:
+    try:
+        with open(path, encoding="utf-8") as file:
+            data = json.load(file)
+    except FileNotFoundError as exc:
+        raise ComparisonError(f"File not found: {path}") from exc
+    except OSError as exc:
+        raise ComparisonError(f"Cannot read {path}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ComparisonError(f"Invalid JSON in {path}: {exc}") from exc
 
-    baseline_path = Path(sys.argv[1])
-    candidate_path = Path(sys.argv[2])
+    if not isinstance(data, dict):
+        raise ComparisonError(f"Result root must be an object: {path}")
+    return data
 
-    for p in (baseline_path, candidate_path):
-        if not p.exists():
-            print(f"ERROR: File not found: {p}", file=sys.stderr)
-            return 2
 
-    with open(baseline_path) as f:
-        baseline = json.load(f)
-    with open(candidate_path) as f:
-        candidate = json.load(f)
+def load_headlines(path: Path) -> dict[str, dict[str, Any]]:
+    try:
+        with open(path, "rb") as file:
+            data = tomllib.load(file)
+    except FileNotFoundError as exc:
+        raise ComparisonError(f"Headline metrics not found: {path}") from exc
+    except OSError as exc:
+        raise ComparisonError(f"Cannot read headline metrics {path}: {exc}") from exc
+    except tomllib.TOMLDecodeError as exc:
+        raise ComparisonError(f"Invalid headline metrics TOML in {path}: {exc}") from exc
 
-    moonshot = baseline.get("moonshot", candidate.get("moonshot"))
-    if not moonshot:
-        print("ERROR: Cannot determine moonshot name from result files.", file=sys.stderr)
-        return 2
+    if not isinstance(data, dict):
+        raise ComparisonError(f"Headline metrics root must be a table: {path}")
+    return data
 
-    # Locate headline-metrics.toml relative to this script
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent
-    metrics_file = repo_root / "moonshots" / moonshot / "headline-metrics.toml"
 
-    if not metrics_file.exists():
-        print(f"ERROR: Headline metrics not found: {metrics_file}", file=sys.stderr)
-        return 2
-
-    with open(metrics_file, "rb") as f:
-        headlines = tomllib.load(f)
-
-    # --- Compare ---
+def compare_headlines(
+    baseline: dict[str, Any],
+    candidate: dict[str, Any],
+    headlines: dict[str, dict[str, Any]],
+) -> tuple[list[tuple[str, str, str, str, str, str]], list[str]]:
+    """Compare configured headline metrics and return display rows and failures."""
     failures = []
     rows = []
 
     for name, spec in headlines.items():
-        metric_path = spec["metric_path"]
+        if not isinstance(spec, dict) or "metric_path" not in spec:
+            raise ComparisonError(f"Invalid headline metric specification: {name}")
+        metric_path = str(spec["metric_path"])
         direction = spec.get("direction", "lower_is_better")
-        threshold = spec.get("threshold_percent", 5.0)
-        unit = spec.get("unit", "")
+        threshold = numeric_setting(spec, "threshold_percent", name, 5.0)
+        assert threshold is not None
+        if threshold < 0:
+            raise ComparisonError(
+                f"Invalid threshold_percent for headline metric {name}: "
+                "must not be negative"
+            )
+        unit = str(spec.get("unit", ""))
 
         base_val = resolve_metric(baseline, metric_path)
         cand_val = resolve_metric(candidate, metric_path)
@@ -127,16 +177,65 @@ def main() -> int:
                 f"{name}: regressed {pct_change:+.2f}% (threshold: {threshold}%)"
             )
 
-        rows.append((name, f"{base_val:.4g}", f"{cand_val:.4g}", f"{pct_change:+.2f}%", status, unit))
+        rows.append(
+            (
+                name,
+                f"{base_val:.4g}",
+                f"{cand_val:.4g}",
+                f"{pct_change:+.2f}%",
+                status,
+                unit,
+            )
+        )
 
-        # Check hard ceiling if present (e.g., warm_call_p99 must be < 50 µs)
-        hard_ceiling = spec.get("hard_ceiling_us")
-        if hard_ceiling is not None and cand_val is not None and cand_val > hard_ceiling:
+        hard_ceiling = numeric_setting(spec, "hard_ceiling_us", name)
+        if hard_ceiling is not None and cand_val > hard_ceiling:
             failures.append(
                 f"{name}: candidate {cand_val:.2f} µs exceeds hard ceiling {hard_ceiling} µs"
             )
-            # Override status in last row
-            rows[-1] = (name, f"{base_val:.4g}", f"{cand_val:.4g}", f"{pct_change:+.2f}%", "CEIL", unit)
+            rows[-1] = (
+                name,
+                f"{base_val:.4g}",
+                f"{cand_val:.4g}",
+                f"{pct_change:+.2f}%",
+                "CEIL",
+                unit,
+            )
+
+    return rows, failures
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if len(args) != 2:
+        print(f"Usage: {sys.argv[0]} <baseline.json> <candidate.json>", file=sys.stderr)
+        return 2
+
+    baseline_path = Path(args[0])
+    candidate_path = Path(args[1])
+
+    try:
+        baseline = load_json(baseline_path)
+        candidate = load_json(candidate_path)
+
+        baseline_moonshot = baseline.get("moonshot")
+        candidate_moonshot = candidate.get("moonshot")
+        if baseline_moonshot and candidate_moonshot and baseline_moonshot != candidate_moonshot:
+            raise ComparisonError(
+                "Result files describe different moonshots: "
+                f"{baseline_moonshot} and {candidate_moonshot}"
+            )
+        moonshot = baseline_moonshot or candidate_moonshot
+        if not isinstance(moonshot, str) or not moonshot:
+            raise ComparisonError("Cannot determine moonshot name from result files.")
+
+        repo_root = Path(__file__).resolve().parent.parent
+        metrics_file = repo_root / "moonshots" / moonshot / "headline-metrics.toml"
+        headlines = load_headlines(metrics_file)
+        rows, failures = compare_headlines(baseline, candidate, headlines)
+    except ComparisonError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
 
     # --- Print table ---
     print(f"\n{'='*72}")
