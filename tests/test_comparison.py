@@ -18,7 +18,6 @@ from comparison.compare import (
     render_terminal,
 )
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "comparison" / "compare.py"
 

@@ -10,7 +10,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "benchmarks" / "report_generator.py"
 report_generator = importlib.import_module("benchmarks.report_generator")
