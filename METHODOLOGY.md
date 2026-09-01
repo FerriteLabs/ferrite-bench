@@ -168,7 +168,7 @@ Before publishing any benchmark results, verify the following:
 
 ## Reporting
 
-Results are published at: https://ferrite.dev/benchmarks/
+Results are published in the [Ferrite benchmark repository](https://github.com/ferritelabs/ferrite-bench).
 Raw data (CSV) available at: https://github.com/ferritelabs/ferrite-bench/results/
 
 ## Update: March 2025

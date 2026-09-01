@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - Unreleased (planned)
+
+### Added
+
+- Deterministic Python and Bash regression coverage for benchmark parsing, comparison policy, reporting, and CLI error behavior
+
+### Changed
+
+- Separated benchmark data ingestion, analysis, host inspection, rendering, and CLI coordination into cohesive modules
+- Separated comparison policy from terminal and Markdown presentation while preserving output schemas and CLI compatibility
+- Made deterministic tests a prerequisite for ShellCheck and Ruff CI gates
+- Use reachable GitHub documentation and support links until an owned hosted domain is configured
+
+### Fixed
+
+- Preserved blank duration semantics and made malformed or missing benchmark data fail explicitly
+
+## [0.4.1] - 2026-04-22
+
+### Fixed
+
+- Improved comparison-script robustness and moonshot benchmark stubs
+
 ## [0.4.0] - 2026-04-20
 
 ### Added
@@ -41,6 +64,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated CI workflow with gitleaks secret scanning
 - Improved benchmark documentation in README
 
-[Unreleased]: https://github.com/ferritelabs/ferrite-bench/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ferritelabs/ferrite-bench/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ferritelabs/ferrite-bench/compare/v0.4.1...v0.5.0
+[0.4.1]: https://github.com/ferritelabs/ferrite-bench/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/ferritelabs/ferrite-bench/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ferritelabs/ferrite-bench/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ferritelabs/ferrite-bench/releases/tag/v0.2.0
