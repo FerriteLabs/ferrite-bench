@@ -7,8 +7,17 @@ on:
     branches: [main]
 
 jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run deterministic tests
+        run: tests/run.sh
+
   lint:
     name: Lint
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,12 +34,13 @@ jobs:
 
   python-lint:
     name: Python Lint
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
         with:
-          args: check benchmarks/ comparison/
+          args: check benchmarks/ comparison/ scripts/
 
   gitleaks:
     name: Secret Scanning

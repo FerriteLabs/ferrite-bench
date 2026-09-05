@@ -81,7 +81,7 @@ print_summary() {
     printf "  %-20s %12s %12s\n" "Command" "Requests/s" "Avg Latency"
     echo "  ───────────────────────────────────────────────────────"
 
-    tail -n +2 "$csv_file" | while IFS=',' read -r test rps avg_latency min_latency p50 p95 p99 max_latency; do
+    tail -n +2 "$csv_file" | while IFS=',' read -r test rps avg_latency _min_latency _p50 _p95 _p99 _max_latency; do
         test="${test//\"/}"
         rps="${rps//\"/}"
         avg_latency="${avg_latency//\"/}"

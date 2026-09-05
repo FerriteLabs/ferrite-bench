@@ -27,14 +27,6 @@ REQUESTS="${MEMTIER_REQUESTS:-1000000}"
 DATA_SIZE="${MEMTIER_DATA_SIZE:-512}"
 KEY_MIN="${MEMTIER_KEY_MIN:-1}"
 KEY_MAX="${MEMTIER_KEY_MAX:-1000000}"
-PIPELINE_SIZES="${MEMTIER_PIPELINE_SIZES:-1,16,32}"
-CONCURRENT_CLIENTS="${MEMTIER_CONCURRENT_CLIENTS:-50,100,200}"
-CONNECT_TIMEOUT="${MEMTIER_CONNECT_TIMEOUT:-2000}"
-
-# ── Derived configuration ────────────────────────────────────────────────
-RUN_ID="${TIMESTAMP}-${RANDOM}"
-RECONNECT_INTERVAL="${MEMTIER_RECONNECT_INTERVAL:-0}"
-
 FERRITE_ONLY=false
 if [[ "${1:-}" == "--ferrite-only" ]]; then
     FERRITE_ONLY=true
@@ -247,7 +239,7 @@ generate_summary() {
             echo "| Server | Ops/sec | Avg Latency (ms) | p50 (ms) | p99 (ms) |"
             echo "|--------|--------:|------------------:|---------:|---------:|"
 
-            grep ",${label}," "$csv_file" | while IFS=',' read -r srv sc rt pl ops avg p50 p99; do
+            grep ",${label}," "$csv_file" | while IFS=',' read -r srv sc _ratio _pipeline ops avg p50 p99; do
                 printf "| %-10s | %s | %s | %s | %s |\n" "$srv" "$ops" "$avg" "$p50" "$p99"
             done
 
@@ -266,7 +258,7 @@ check_latency_thresholds() {
     info "Checking latency thresholds (max p99: ${max_p99}ms)..."
     local failures=0
 
-    grep "^ferrite," "$csv_file" | while IFS=',' read -r srv sc rt pl ops avg p50 p99; do
+    grep "^ferrite," "$csv_file" | while IFS=',' read -r srv sc _ratio _pipeline ops avg p50 p99; do
         if (( $(echo "$p99 > $max_p99" | bc -l) )); then
             warn "THRESHOLD EXCEEDED: ${sc} p99=${p99}ms > ${max_p99}ms"
             failures=$((failures + 1))
@@ -301,18 +293,16 @@ main() {
     echo ""
 
     # Determine which services to start
-    local services
+    local services=()
     if [[ "$FERRITE_ONLY" == true ]]; then
-        services="ferrite memtier"
-    else
-        services=""
+        services=(ferrite memtier)
     fi
 
     trap cleanup EXIT
 
     info "Starting Docker Compose services..."
-    if [[ -n "$services" ]]; then
-        docker compose -f "$COMPOSE_FILE" up -d $services
+    if [[ ${#services[@]} -gt 0 ]]; then
+        docker compose -f "$COMPOSE_FILE" up -d "${services[@]}"
     else
         docker compose -f "$COMPOSE_FILE" up -d
     fi

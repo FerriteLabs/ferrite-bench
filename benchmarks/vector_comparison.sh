@@ -43,22 +43,11 @@ SEARCH_K="${SEARCH_K:-10}"
 NUM_QUERIES="${NUM_QUERIES:-1000}"
 
 INDEX_NAME="bench_vectors"
-RESULTS_DIR="$(dirname "$0")/results"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RESULTS_DIR="${SCRIPT_DIR}/results"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
 FERRITE_ONLY=false
-QUICK_MODE=false
-
-for arg in "$@"; do
-    case "$arg" in
-        --ferrite-only) FERRITE_ONLY=true ;;
-        --quick)
-            QUICK_MODE=true
-            VECTOR_COUNT=1000
-            NUM_QUERIES=100
-            ;;
-    esac
-done
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -66,6 +55,33 @@ info()  { echo -e "\033[0;34m[INFO]\033[0m  $*"; }
 ok()    { echo -e "\033[0;32m[OK]\033[0m    $*"; }
 warn()  { echo -e "\033[0;33m[WARN]\033[0m  $*"; }
 error() { echo -e "\033[0;31m[ERROR]\033[0m $*" >&2; }
+
+read_result_value() {
+    local file="$1"
+    local key="$2"
+    local default="${3:-N/A}"
+    local value
+
+    value=$(awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' "$file")
+    printf '%s\n' "${value:-$default}"
+}
+
+parse_vector_args() {
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            --ferrite-only) FERRITE_ONLY=true ;;
+            --quick)
+                VECTOR_COUNT=1000
+                NUM_QUERIES=100
+                ;;
+            *)
+                error "Unknown option: $arg"
+                return 1
+                ;;
+        esac
+    done
+}
 
 check_prereqs() {
     if ! command -v redis-cli &>/dev/null; then
@@ -632,15 +648,23 @@ print_results_table() {
 
     # Insert performance
     if [[ -f "${RESULTS_DIR}/vector_${TIMESTAMP}.env" ]]; then
-        source "${RESULTS_DIR}/vector_${TIMESTAMP}.env" 2>/dev/null || true
+        local env_file="${RESULTS_DIR}/vector_${TIMESTAMP}.env"
+        local ferrite_insert_time ferrite_insert_ops redis_insert_time redis_insert_ops
+        local qdrant_insert_time qdrant_insert_ops
+        ferrite_insert_time=$(read_result_value "$env_file" FERRITE_INSERT_TIME)
+        ferrite_insert_ops=$(read_result_value "$env_file" FERRITE_INSERT_OPS)
+        redis_insert_time=$(read_result_value "$env_file" REDIS_INSERT_TIME)
+        redis_insert_ops=$(read_result_value "$env_file" REDIS_INSERT_OPS)
+        qdrant_insert_time=$(read_result_value "$env_file" QDRANT_INSERT_TIME)
+        qdrant_insert_ops=$(read_result_value "$env_file" QDRANT_INSERT_OPS)
         echo "## Insert Performance"
         echo ""
         echo "| Engine | Vectors | Time (s) | Ops/sec |"
         echo "|--------|---------|----------|---------|"
-        echo "| Ferrite | ${VECTOR_COUNT} | ${FERRITE_INSERT_TIME:-N/A} | ${FERRITE_INSERT_OPS:-N/A} |"
+        echo "| Ferrite | ${VECTOR_COUNT} | ${ferrite_insert_time} | ${ferrite_insert_ops} |"
         if [[ "$FERRITE_ONLY" == false ]]; then
-            echo "| Redis+RedisSearch | ${VECTOR_COUNT} | ${REDIS_INSERT_TIME:-N/A} | ${REDIS_INSERT_OPS:-N/A} |"
-            echo "| Qdrant | ${VECTOR_COUNT} | ${QDRANT_INSERT_TIME:-N/A} | ${QDRANT_INSERT_OPS:-N/A} |"
+            echo "| Redis+RedisSearch | ${VECTOR_COUNT} | ${redis_insert_time} | ${redis_insert_ops} |"
+            echo "| Qdrant | ${VECTOR_COUNT} | ${qdrant_insert_time} | ${qdrant_insert_ops} |"
         fi
         echo ""
     fi
@@ -705,6 +729,7 @@ cleanup() {
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
+    parse_vector_args "$@"
     check_prereqs
     mkdir -p "$RESULTS_DIR"
 
@@ -728,9 +753,7 @@ main() {
     generate_queries "$NUM_QUERIES" "$VECTOR_DIM" "$queries_file"
 
     # Benchmark Ferrite
-    local ferrite_available=false
     if redis-cli -h "$FERRITE_HOST" -p "$FERRITE_PORT" PING 2>/dev/null | grep -q "PONG"; then
-        ferrite_available=true
         cleanup "$FERRITE_HOST" "$FERRITE_PORT"
         benchmark_ferrite_insert "$vectors_file" "$FERRITE_HOST" "$FERRITE_PORT"
         benchmark_ferrite_search "$queries_file" "$FERRITE_HOST" "$FERRITE_PORT"
@@ -777,4 +800,6 @@ main() {
     rm -f "$vectors_file" "$queries_file"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi
